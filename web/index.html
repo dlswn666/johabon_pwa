@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+        <base href="$FLUTTER_BASE_HREF" />
+
+        <meta charset="UTF-8" />
+        <meta content="IE=Edge" http-equiv="X-UA-Compatible" />
+        <meta name="description" content="재개발/재건축 조합원 전용 웹페이지" />
+
+        <!-- 브라우저 테마 색상 설정 -->
+        <meta name="theme-color" content="#2A3F68" />
+
+        <!-- iOS meta tags & icons -->
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+        <meta name="apple-mobile-web-app-title" content="재개발 조합" />
+        <link rel="apple-touch-icon" href="icons/Icon-192.png" />
+
+        <!-- Favicon -->
+        <link rel="icon" type="image/png" href="favicon.png" />
+
+        <title>재개발 조합</title>
+        <link rel="manifest" href="manifest.json" />
+
+        <!-- 스플래시 화면 스타일 -->
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+            }
+            .splash-screen {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: linear-gradient(to bottom right, #1a2842, #2a3f68, #3c5c8e);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+                transition: opacity 0.5s;
+            }
+            .splash-icon {
+                width: 120px;
+                height: 120px;
+                border-radius: 60px;
+                background-color: rgba(255, 255, 255, 0.1);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 40px;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            }
+            .splash-text {
+                color: white;
+                font-size: 24px;
+                font-weight: bold;
+                text-align: center;
+                margin-bottom: 60px;
+                line-height: 1.4;
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            }
+            .splash-spinner {
+                width: 50px;
+                height: 50px;
+                border: 4px solid rgba(255, 255, 255, 0.3);
+                border-radius: 50%;
+                border-top-color: white;
+                animation: spin 1s ease-in-out infinite;
+            }
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <!-- 스플래시 화면 -->
+        <div id="splash" class="splash-screen">
+            <div class="splash-icon">
+                <!-- 아이콘 표시 -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="white">
+                    <path d="M21 21h-3V9h3v12zm-6 0h-3V5h3v16zm-6 0H6V13h3v8z" />
+                </svg>
+            </div>
+            <div class="splash-text">재개발/재건축<br />조합원 전용 웹페이지</div>
+            <div class="splash-spinner"></div>
+        </div>
+
+        <!-- Flutter 앱 -->
+        <script src="flutter_bootstrap.js" async></script>
+
+        <!-- 앱 로드 후 스플래시 화면 숨기기 -->
+        <script>
+            window.addEventListener('flutter-first-frame', function () {
+                var splash = document.getElementById('splash');
+                if (splash) {
+                    splash.style.opacity = '0';
+                    setTimeout(function () {
+                        splash.remove();
+                    }, 500);
+                }
+            });
+        </script>
+    </body>
+</html>
