@@ -115,6 +115,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    // 웹인지 앱인지 판단 (넓이 기준)
+    final isWeb = MediaQuery.of(context).size.width > 800;
+
     return Scaffold(
       body: Stack(
         children: [
@@ -146,48 +149,118 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             },
           ),
           
-          // 상단 로고와 타이틀
-          Positioned(
-            top: 20,
-            left: 20,
-            child: Row(
-              children: [
-                Image.asset(
-                  'images/logo.jpg',
-                  width: 100,
-                  height: 100,
+          isWeb 
+              ? _buildWebUI(context) 
+              : _buildAppUI(context),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildWebUI(BuildContext context) {
+    return Stack(
+      children: [
+        // 상단 로고와 타이틀
+        Positioned(
+          top: 20,
+          left: 20,
+          child: Row(
+            children: [
+              Image.asset(
+                'images/logo.jpg',
+                width: 100,
+                height: 100,
+                color: Colors.white,
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                '재개발/재건축 조합원 홈페이지',
+                style: TextStyle(
                   color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black54,
+                      offset: Offset(1, 1),
+                      blurRadius: 3,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 10),
-                const Text(
-                  '재개발/재건축 조합원 홈페이지',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    shadows: [
-                      Shadow(
-                        color: Colors.black54,
-                        offset: Offset(1, 1),
-                        blurRadius: 3,
-                      ),
-                    ],
-                  ),
+              ),
+            ],
+          ),
+        ),
+        
+        // 로그인 패널
+        Align(
+          alignment: Alignment.centerRight,
+          child: Container(
+            width: 400,
+            margin: const EdgeInsets.only(right: 50),
+            padding: const EdgeInsets.all(30),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 10,
+                  spreadRadius: 1,
                 ),
               ],
             ),
+            child: _buildLoginForm(),
           ),
-          
-          // 로그인 패널
-          Align(
-            alignment: Alignment.centerRight,
-            child: Container(
-              width: MediaQuery.of(context).size.width > 800 
-                ? 400 
-                : MediaQuery.of(context).size.width * 0.9,
-              margin: MediaQuery.of(context).size.width > 800 
-                ? const EdgeInsets.only(right: 50) 
-                : const EdgeInsets.symmetric(horizontal: 20),
+        ),
+      ],
+    );
+  }
+  
+  Widget _buildAppUI(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // 앱 버전의 로고 및 타이틀
+            Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                children: [
+                  Image.asset(
+                    'images/logo.jpg',
+                    width: 120,
+                    height: 120,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(height: 15),
+                  const Text(
+                    '재개발/재건축 조합원 홈페이지',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black54,
+                          offset: Offset(1, 1),
+                          blurRadius: 3,
+                        ),
+                      ],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 30),
+            
+            // 로그인 패널
+            Container(
+              width: MediaQuery.of(context).size.width * 0.9,
+              margin: const EdgeInsets.symmetric(horizontal: 20),
               padding: const EdgeInsets.all(30),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -200,217 +273,221 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   ),
                 ],
               ),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // 로그인 타이틀
-                    const Text(
-                      '로그인',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF2A3F68),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    
-                    const SizedBox(height: 30),
-                    
-                    // 에러 메시지
-                    if (_errorMessage != null) ...[
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        margin: const EdgeInsets.only(bottom: 20),
-                        decoration: BoxDecoration(
-                          color: AppTheme.errorColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: AppTheme.errorColor.withOpacity(0.5),
-                            width: 1,
-                          ),
-                        ),
-                        child: Text(
-                          _errorMessage!,
-                          style: TextStyle(
-                            color: AppTheme.errorColor,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ],
-                    
-                    // ID 입력
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: TextFormField(
-                        controller: _idController,
-                        focusNode: _idFocusNode,
-                        decoration: const InputDecoration(
-                          labelText: 'ID',
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          border: InputBorder.none,
-                          hintText: '예: test123',
-                        ),
-                        textInputAction: TextInputAction.next,
-                        onFieldSubmitted: (_) => FocusScope.of(context).requestFocus(_passwordFocusNode),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return '아이디를 입력해주세요';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 15),
-                    
-                    // 비밀번호 입력
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: TextFormField(
-                        controller: _passwordController,
-                        focusNode: _passwordFocusNode,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'PW',
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          border: InputBorder.none,
-                          hintText: '예: 123',
-                        ),
-                        onFieldSubmitted: (_) => _login(),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return '비밀번호를 입력해주세요';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 20),
-                    
-                    // 로그인 버튼
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _login,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2A3F68),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : const Text(
-                              '로그인',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                    ),
-                    
-                    const SizedBox(height: 15),
-                    
-                    // 회원가입 및 ID/PW 찾기 버튼
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () {
-                              Navigator.pushNamed(context, AppRoutes.register);
-                            },
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              side: const BorderSide(color: Color(0xFF2A3F68)),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            ),
-                            child: const Text(
-                              '회원가입',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF2A3F68),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () {
-                              // ID/PW 찾기 기능
-                            },
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              side: const BorderSide(color: Color(0xFF2A3F68)),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            ),
-                            child: const Text(
-                              'ID/PW 찾기',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF2A3F68),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    
-                    // 테스트 계정 안내
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '테스트 계정 정보',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                          SizedBox(height: 5),
-                          Text(
-                            'ID: test123',
-                            style: TextStyle(fontSize: 13),
-                          ),
-                          Text(
-                            'PW: 123',
-                            style: TextStyle(fontSize: 13),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+              child: _buildLoginForm(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildLoginForm() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 로그인 타이틀
+          const Text(
+            '로그인',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2A3F68),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          
+          const SizedBox(height: 30),
+          
+          // 에러 메시지
+          if (_errorMessage != null) ...[
+            Container(
+              padding: const EdgeInsets.all(10),
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: AppTheme.errorColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: AppTheme.errorColor.withOpacity(0.5),
+                  width: 1,
                 ),
               ),
+              child: Text(
+                _errorMessage!,
+                style: TextStyle(
+                  color: AppTheme.errorColor,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+          
+          // ID 입력
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: TextFormField(
+              controller: _idController,
+              focusNode: _idFocusNode,
+              decoration: const InputDecoration(
+                labelText: 'ID',
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                border: InputBorder.none,
+                hintText: '예: test123',
+              ),
+              textInputAction: TextInputAction.next,
+              onFieldSubmitted: (_) => FocusScope.of(context).requestFocus(_passwordFocusNode),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return '아이디를 입력해주세요';
+                }
+                return null;
+              },
+            ),
+          ),
+          
+          const SizedBox(height: 15),
+          
+          // 비밀번호 입력
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: TextFormField(
+              controller: _passwordController,
+              focusNode: _passwordFocusNode,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'PW',
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                border: InputBorder.none,
+                hintText: '예: 123',
+              ),
+              onFieldSubmitted: (_) => _login(),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return '비밀번호를 입력해주세요';
+                }
+                return null;
+              },
+            ),
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // 로그인 버튼
+          ElevatedButton(
+            onPressed: _isLoading ? null : _login,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2A3F68),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            child: _isLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Text(
+                    '로그인',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+          ),
+          
+          const SizedBox(height: 15),
+          
+          // 회원가입 및 ID/PW 찾기 버튼
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.pushNamed(context, AppRoutes.register);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    side: const BorderSide(color: Color(0xFF2A3F68)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  child: const Text(
+                    '회원가입',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF2A3F68),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    // ID/PW 찾기 기능
+                  },
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    side: const BorderSide(color: Color(0xFF2A3F68)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  child: const Text(
+                    'ID/PW 찾기',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF2A3F68),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          
+          // 테스트 계정 안내
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '테스트 계정 정보',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                SizedBox(height: 5),
+                Text(
+                  'ID: test123',
+                  style: TextStyle(fontSize: 13),
+                ),
+                Text(
+                  'PW: 123',
+                  style: TextStyle(fontSize: 13),
+                ),
+              ],
             ),
           ),
         ],
