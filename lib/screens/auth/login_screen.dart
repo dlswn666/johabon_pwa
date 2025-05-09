@@ -325,57 +325,67 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           ],
           
           // ID 입력
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: TextFormField(
-              controller: _idController,
-              focusNode: _idFocusNode,
-              decoration: const InputDecoration(
-                labelText: 'ID',
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                border: InputBorder.none,
-                hintText: '예: test123',
+          TextFormField(
+            controller: _idController,
+            focusNode: _idFocusNode,
+            decoration: InputDecoration(
+              labelText: 'ID',
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4),
+                borderSide: BorderSide(color: Colors.grey.shade300),
               ),
-              textInputAction: TextInputAction.next,
-              onFieldSubmitted: (_) => FocusScope.of(context).requestFocus(_passwordFocusNode),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return '아이디를 입력해주세요';
-                }
-                return null;
-              },
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4),
+                borderSide: BorderSide(color: Colors.grey.shade500),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              hintText: '예: test123',
             ),
+            textInputAction: TextInputAction.next,
+            onFieldSubmitted: (_) => FocusScope.of(context).requestFocus(_passwordFocusNode),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return '아이디를 입력해주세요';
+              }
+              return null;
+            },
           ),
           
           const SizedBox(height: 15),
           
           // 비밀번호 입력
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: TextFormField(
-              controller: _passwordController,
-              focusNode: _passwordFocusNode,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'PW',
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                border: InputBorder.none,
-                hintText: '예: 123',
+          TextFormField(
+            controller: _passwordController,
+            focusNode: _passwordFocusNode,
+            obscureText: true,
+            decoration: InputDecoration(
+              labelText: 'PW',
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4),
+                borderSide: BorderSide(color: Colors.grey.shade300),
               ),
-              onFieldSubmitted: (_) => _login(),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return '비밀번호를 입력해주세요';
-                }
-                return null;
-              },
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4),
+                borderSide: BorderSide(color: Colors.grey.shade500),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              hintText: '예: 123',
             ),
+            onFieldSubmitted: (_) => _login(),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return '비밀번호를 입력해주세요';
+              }
+              return null;
+            },
           ),
           
           const SizedBox(height: 20),
@@ -439,6 +449,42 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 child: OutlinedButton(
                   onPressed: () {
                     // ID/PW 찾기 기능
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          title: const Text(
+                            'ID/PW 찾기',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF2A3F68),
+                            ),
+                          ),
+                          content: const Text(
+                            '조합사무실에 연락주시면 ID/PW 안내해 드립니다.',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                              },
+                              child: const Text(
+                                '확인',
+                                style: TextStyle(
+                                  color: Color(0xFF2A3F68),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    );
                   },
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
