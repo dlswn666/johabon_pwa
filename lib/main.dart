@@ -4,6 +4,7 @@ import 'package:johabon_pwa/config/theme.dart';
 import 'package:johabon_pwa/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +46,15 @@ class MyApp extends StatelessWidget {
       initialRoute: AppRoutes.login,
       routes: AppRoutes.getRoutes(),
       onGenerateRoute: AppRoutes.generateRoute,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ko', 'KR'),
+        Locale('en', 'US'),
+      ],
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:johabon_pwa/providers/auth_provider.dart';
 import 'package:johabon_pwa/widgets/common/custom_button.dart';
 import 'package:johabon_pwa/widgets/common/custom_text_field.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -21,6 +22,20 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   final _passwordFocusNode = FocusNode();
   bool _isLoading = false;
   String? _errorMessage;
+  
+  // 회원가입 모달 컨트롤러
+  final _registerFormKey = GlobalKey<FormState>();
+  final _registerIdController = TextEditingController();
+  final _registerPasswordController = TextEditingController();
+  final _registerPasswordConfirmController = TextEditingController();
+  final _registerNameController = TextEditingController();
+  final _registerPhoneController = TextEditingController();
+  final _registerBirthController = TextEditingController();
+  final _registerAddressController = TextEditingController();
+  
+  // 날짜 포맷터 추가
+  final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
+  DateTime? _selectedDate;
   
   // 배경 이미지 페이드 효과를 위한 변수
   late AnimationController _animationController;
@@ -72,6 +87,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     _passwordController.dispose();
     _idFocusNode.dispose();
     _passwordFocusNode.dispose();
+    _registerIdController.dispose();
+    _registerPasswordController.dispose();
+    _registerPasswordConfirmController.dispose();
+    _registerNameController.dispose();
+    _registerPhoneController.dispose();
+    _registerBirthController.dispose();
+    _registerAddressController.dispose();
     _animationController.dispose();
     super.dispose();
   }
@@ -111,6 +133,324 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         _isLoading = false;
       });
     }
+  }
+
+  // 날짜 선택 다이얼로그 표시
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime now = DateTime.now();
+    final DateTime initialDate = _selectedDate ?? DateTime(now.year - 20, now.month, now.day);
+    
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(1900),
+      lastDate: now,
+      locale: const Locale('ko', 'KR'), // 한국어 로케일 설정
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppTheme.primaryColor,
+            ),
+            // 한국어 텍스트 설정
+            textTheme: const TextTheme(
+              // 헤더 타이틀 스타일
+              titleLarge: TextStyle(
+                fontSize: 18, 
+                fontWeight: FontWeight.bold,
+              ),
+              // 버튼 텍스트 스타일
+              labelLarge: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+        _registerBirthController.text = _dateFormat.format(picked);
+      });
+    }
+  }
+
+  // 회원가입 처리 함수
+  Future<void> _register() async {
+    if (!_registerFormKey.currentState!.validate()) {
+      return;
+    }
+    
+    // 임시로 Dialog 닫기만 처리
+    if (mounted) {
+      Navigator.of(context).pop();
+      // 성공 메시지 표시
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('회원가입 요청이 완료되었습니다. 관리자 승인 후 이용 가능합니다.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+    
+    // TODO: 실제 회원가입 API 연동 로직 추가
+  }
+
+  // 웹 회원가입 모달 표시
+  void _showWebRegisterModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Container(
+            width: 550,
+            padding: const EdgeInsets.all(24),
+            child: Form(
+              key: _registerFormKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 회원가입 타이틀
+                    const Text(
+                      '재개발/재건축 조합원 회원가입',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    // ID
+                    TextFormField(
+                      controller: _registerIdController,
+                      decoration: InputDecoration(
+                        labelText: 'ID',
+                        hintText: 'ID를 입력해주세요',
+                        prefixIcon: const Icon(Icons.account_circle_outlined),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'ID를 입력해주세요';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 15),
+                    
+                    // 비밀번호
+                    TextFormField(
+                      controller: _registerPasswordController,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: '비밀번호',
+                        hintText: '비밀번호를 입력해주세요',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '비밀번호를 입력해주세요';
+                        }
+                        if (value.length < 8) {
+                          return '비밀번호는 8자 이상이어야 합니다';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 15),
+                    
+                    // 비밀번호 확인
+                    TextFormField(
+                      controller: _registerPasswordConfirmController,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: '비밀번호 확인',
+                        hintText: '비밀번호를 다시 입력해주세요',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '비밀번호 확인을 입력해주세요';
+                        }
+                        if (value != _registerPasswordController.text) {
+                          return '비밀번호가 일치하지 않습니다';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 15),
+                    
+                    // 이름(소유자명)
+                    TextFormField(
+                      controller: _registerNameController,
+                      decoration: InputDecoration(
+                        labelText: '이름(소유자명)',
+                        hintText: '이름을 입력해주세요',
+                        prefixIcon: const Icon(Icons.person_outline),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '이름을 입력해주세요';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 15),
+                    
+                    // 전화번호
+                    TextFormField(
+                      controller: _registerPhoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        labelText: '핸드폰 번호',
+                        hintText: '연락 가능한 핸드폰 번호를 입력해주세요',
+                        prefixIcon: const Icon(Icons.smartphone_outlined),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '핸드폰 번호를 입력해주세요';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 15),
+                    
+                    // 생년월일 (캘린더 적용)
+                    GestureDetector(
+                      onTap: () => _selectDate(context),
+                      child: AbsorbPointer(
+                        child: TextFormField(
+                          controller: _registerBirthController,
+                          decoration: InputDecoration(
+                            labelText: '생년월일',
+                            hintText: '생년월일을 선택해주세요',
+                            prefixIcon: const Icon(Icons.calendar_today_outlined),
+                            suffixIcon: const Icon(Icons.arrow_drop_down),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return '생년월일을 선택해주세요';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    
+                    // 권리소재지
+                    TextFormField(
+                      controller: _registerAddressController,
+                      maxLines: 2,
+                      decoration: InputDecoration(
+                        labelText: '권리소재지',
+                        hintText: '권리소재지 주소를 입력해주세요',
+                        prefixIcon: const Icon(Icons.location_on_outlined),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '권리소재지를 입력해주세요';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 25),
+                    
+                    // 안내 텍스트
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: const Text(
+                        '* 회원가입 신청 후 관리자 승인 절차가 필요합니다.\n* 승인 완료 시 등록하신 연락처로 알림이 발송됩니다.',
+                        style: TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    // 버튼 영역
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text(
+                            '취소',
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        ElevatedButton(
+                          onPressed: _register,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primaryColor,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          child: const Text(
+                            '회원가입 신청',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -210,7 +550,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 ),
               ],
             ),
-            child: _buildLoginForm(),
+            child: _buildLoginForm(isWeb: true),
           ),
         ),
       ],
@@ -273,7 +613,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   ),
                 ],
               ),
-              child: _buildLoginForm(),
+              child: _buildLoginForm(isWeb: false),
             ),
           ],
         ),
@@ -281,7 +621,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     );
   }
   
-  Widget _buildLoginForm() {
+  Widget _buildLoginForm({required bool isWeb}) {
     return Form(
       key: _formKey,
       child: Column(
@@ -426,7 +766,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               Expanded(
                 child: OutlinedButton(
                   onPressed: () {
-                    Navigator.pushNamed(context, AppRoutes.register);
+                    // 웹과 앱 구분하여 회원가입 동작 처리
+                    if (isWeb) {
+                      _showWebRegisterModal(context);
+                    } else {
+                      Navigator.pushNamed(context, AppRoutes.register);
+                    }
                   },
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
