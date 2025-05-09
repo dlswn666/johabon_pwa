@@ -50,6 +50,7 @@ dependencies:
     # 네트워크, API 통신
     http: ^1.2.0
     dio: ^5.4.2
+    webview_flutter: ^4.5.0
 
     # 지도 관련
     flutter_naver_map: ^1.2.0
