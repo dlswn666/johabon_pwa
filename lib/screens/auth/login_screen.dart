@@ -204,6 +204,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   void _showWebRegisterModal(BuildContext context) {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return Dialog(
           shape: RoundedRectangleBorder(
@@ -396,11 +397,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     // 안내 텍스트
                     Container(
                       padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
                       child: const Text(
                         '* 회원가입 신청 후 관리자 승인 절차가 필요합니다.\n* 승인 완료 시 등록하신 연락처로 알림이 발송됩니다.',
                         style: TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
