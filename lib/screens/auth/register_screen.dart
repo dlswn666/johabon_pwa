@@ -281,7 +281,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       hint: '권리소재지 주소를 검색하려면 클릭하세요',
                       prefixIcon: Icons.location_on_outlined,
                       suffixIcon: const Icon(Icons.search),
-                      maxLines: 2,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return '권리소재지를 입력해주세요';
@@ -300,6 +299,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 label: '상세 주소',
                 hint: '상세 주소를 입력해주세요',
                 prefixIcon: Icons.home_outlined,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return '상세 주소를 입력해주세요';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 30),
               
@@ -314,7 +319,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const Text(
                 '* 회원가입 신청 후 관리자 승인 절차가 필요합니다.\n* 승인 완료 시 등록하신 연락처로 알림이 발송됩니다.',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
                   color: AppTheme.textSecondaryColor,
                 ),
                 textAlign: TextAlign.center,

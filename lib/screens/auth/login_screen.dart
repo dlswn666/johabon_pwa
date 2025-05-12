@@ -429,17 +429,17 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         child: AbsorbPointer(
                           child: TextFormField(
                             controller: _registerAddressController,
-                            maxLines: 2,
                             decoration: InputDecoration(
                               labelText: '권리소재지',
                               hintText: '권리소재지 주소를 검색하려면 클릭하세요',
                               prefixIcon: const Icon(Icons.location_on_outlined),
                               suffixIcon: const Icon(Icons.search),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),
+                            textAlignVertical: TextAlignVertical.center,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return '권리소재지를 입력해주세요';
@@ -459,11 +459,18 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         labelText: '상세 주소',
                         hintText: '상세 주소를 입력해주세요',
                         prefixIcon: const Icon(Icons.home_outlined),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
+                      textAlignVertical: TextAlignVertical.center,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '상세 주소를 입력해주세요';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 25),
                     
@@ -472,7 +479,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       padding: const EdgeInsets.all(10),
                       child: const Text(
                         '* 회원가입 신청 후 관리자 승인 절차가 필요합니다.\n* 승인 완료 시 등록하신 연락처로 알림이 발송됩니다.',
-                        style: TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
+                        style: TextStyle(fontSize: 18, color: AppTheme.textSecondaryColor, fontWeight: FontWeight.bold),
                       ),
                     ),
                     const SizedBox(height: 20),

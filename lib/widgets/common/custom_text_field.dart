@@ -81,6 +81,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
             fontSize: 15,
             color: AppTheme.textPrimaryColor,
           ),
+          textAlignVertical: TextAlignVertical.center,
           decoration: InputDecoration(
             hintText: widget.hint,
             hintStyle: const TextStyle(
@@ -127,7 +128,9 @@ class _CustomTextFieldState extends State<CustomTextField> {
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: AppTheme.errorColor, width: 1.5),
             ),
-            contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            contentPadding: widget.maxLines != null && widget.maxLines! > 1
+                ? const EdgeInsets.symmetric(vertical: 20, horizontal: 20)
+                : const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
           ),
           onChanged: widget.onChanged,
           onFieldSubmitted: (value) {
