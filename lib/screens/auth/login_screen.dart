@@ -4,6 +4,7 @@ import 'package:johabon_pwa/config/theme.dart';
 import 'package:johabon_pwa/providers/auth_provider.dart';
 import 'package:johabon_pwa/widgets/common/custom_button.dart';
 import 'package:johabon_pwa/widgets/common/custom_text_field.dart';
+import 'package:johabon_pwa/widgets/address_search_field.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
@@ -373,23 +374,17 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     const SizedBox(height: 15),
                     
                     // 권리소재지
-                    TextFormField(
+                    AddressSearchField(
                       controller: _registerAddressController,
-                      maxLines: 2,
-                      decoration: InputDecoration(
-                        labelText: '권리소재지',
-                        hintText: '권리소재지 주소를 입력해주세요',
-                        prefixIcon: const Icon(Icons.location_on_outlined),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return '권리소재지를 입력해주세요';
-                        }
-                        return null;
+                      label: '권리소재지',
+                      hint: '권리소재지 주소를 검색하려면 클릭하세요',
+                      showDetailAddress: true,
+                      onAddressSelected: (address) {
+                        // 필요한 경우 주소 선택 처리
+                      },
+                      onDetailAddressSelected: (address, detail) {
+                        // 상세 주소까지 포함한 전체 주소 처리
+                        _registerAddressController.text = '$address $detail';
                       },
                     ),
                     const SizedBox(height: 25),

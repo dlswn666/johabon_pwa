@@ -35,6 +35,9 @@
         <title>재개발 조합</title>
         <link rel="manifest" href="manifest.json" />
 
+        <!-- 다음 우편번호 서비스 -->
+        <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+
         <!-- 스플래시 화면 스타일 -->
         <style>
             body {
@@ -118,6 +121,46 @@
                     }, 500);
                 }
             });
+        </script>
+
+        <!-- 주소 검색 관련 JavaScript 코드 -->
+        <script>
+            // 카카오 주소 검색 API 실행
+            function openKakaoPostcode() {
+                new daum.Postcode({
+                    oncomplete: function (data) {
+                        // 선택된 주소 정보를 Flutter로 전달
+                        let fullAddress = data.address;
+                        if (data.buildingName && data.buildingName !== '') {
+                            fullAddress += ' (' + data.buildingName + ')';
+                        }
+
+                        // Flutter에서 메시지 수신을 위한 이벤트 발생
+                        window.dispatchEvent(
+                            new CustomEvent('address_selected', {
+                                detail: { address: fullAddress },
+                            })
+                        );
+                    },
+                }).open();
+            }
+
+            // 이벤트 리스너 설정/해제 함수 (Flutter에서 호출)
+            let addressListener = null;
+
+            function setupAddressSelectedListener(callback) {
+                addressListener = function (e) {
+                    callback(e.detail.address);
+                };
+                window.addEventListener('address_selected', addressListener);
+            }
+
+            function tearDownAddressSelectedListener() {
+                if (addressListener) {
+                    window.removeEventListener('address_selected', addressListener);
+                    addressListener = null;
+                }
+            }
         </script>
     </body>
 </html>

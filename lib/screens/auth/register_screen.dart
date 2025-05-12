@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:johabon_pwa/config/theme.dart';
 import 'package:johabon_pwa/widgets/common/custom_button.dart';
 import 'package:johabon_pwa/widgets/common/custom_text_field.dart';
+import 'package:johabon_pwa/widgets/address_search_field.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -221,17 +222,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 16),
               
               // 권리소재지
-              CustomTextField(
+              AddressSearchField(
                 controller: _addressController,
                 label: '권리소재지',
-                hint: '권리소재지 주소를 입력해주세요',
-                prefixIcon: Icons.location_on_outlined,
-                maxLines: 2,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '권리소재지를 입력해주세요';
-                  }
-                  return null;
+                hint: '권리소재지 주소를 검색하려면 클릭하세요',
+                showDetailAddress: true,
+                onAddressSelected: (address) {
+                  // 필요한 경우 주소 선택 처리
+                },
+                onDetailAddressSelected: (address, detail) {
+                  // 상세 주소까지 포함한 전체 주소 처리
+                  _addressController.text = '$address $detail';
                 },
               ),
               const SizedBox(height: 30),
