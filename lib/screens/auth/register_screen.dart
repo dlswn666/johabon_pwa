@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:johabon_pwa/config/theme.dart';
 import 'package:johabon_pwa/widgets/common/custom_button.dart';
 import 'package:johabon_pwa/widgets/common/custom_text_field.dart';
-import 'package:johabon_pwa/widgets/address_search_field.dart';
+import 'package:johabon_pwa/widgets/common/address_search_dialog.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'dart:js' as js;
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -22,6 +24,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _phoneController = TextEditingController();
   final _birthController = TextEditingController();
   final _addressController = TextEditingController();
+  final _detailAddressController = TextEditingController();
   
   // 날짜 포맷터 추가
   final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
@@ -36,6 +39,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _phoneController.dispose();
     _birthController.dispose();
     _addressController.dispose();
+    _detailAddressController.dispose();
     super.dispose();
   }
   
@@ -85,7 +89,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _register() {
     if (_formKey.currentState!.validate()) {
-      // TODO: 회원가입 로직 구현
+      // 권리소재지와 상세 주소 결합
+      String fullAddress = _addressController.text;
+      if (_detailAddressController.text.isNotEmpty) {
+        fullAddress += ", " + _detailAddressController.text;
+      }
+      
+      // TODO: 실제 API에 전달할 때는 fullAddress 값을 사용
+
+      // 회원가입 성공 메시지 표시
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('회원가입 요청이 완료되었습니다. 관리자 승인 후 이용 가능합니다.')),
       );
@@ -203,37 +215,91 @@ class _RegisterScreenState extends State<RegisterScreen> {
               // 생년월일 (캘린더 적용)
               GestureDetector(
                 onTap: () => _selectDate(context),
-                child: AbsorbPointer(
-                  child: CustomTextField(
-                    controller: _birthController,
-                    label: '생년월일',
-                    hint: '생년월일을 선택해주세요',
-                    prefixIcon: Icons.calendar_today_outlined,
-                    suffixIcon: const Icon(Icons.arrow_drop_down),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return '생년월일을 선택해주세요';
-                      }
-                      return null;
-                    },
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: AbsorbPointer(
+                    child: CustomTextField(
+                      controller: _birthController,
+                      label: '생년월일',
+                      hint: '생년월일을 선택해주세요',
+                      prefixIcon: Icons.calendar_today_outlined,
+                      suffixIcon: const Icon(Icons.arrow_drop_down),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '생년월일을 선택해주세요';
+                        }
+                        return null;
+                      },
+                    ),
                   ),
                 ),
               ),
               const SizedBox(height: 16),
               
               // 권리소재지
-              AddressSearchField(
-                controller: _addressController,
-                label: '권리소재지',
-                hint: '권리소재지 주소를 검색하려면 클릭하세요',
-                showDetailAddress: true,
-                onAddressSelected: (address) {
-                  // 필요한 경우 주소 선택 처리
+              GestureDetector(
+                onTap: () {
+                  if (kIsWeb) {
+                    // 웹 환경에서는 JavaScript 함수 직접 호출
+                    js.context.callMethod('openKakaoPostcode');
+                    
+                    // 주소 선택 리스너 등록
+                    js.context.callMethod('setupAddressSelectedListener', [
+                      js.allowInterop((String address) {
+                        setState(() {
+                          _addressController.text = address;
+                        });
+                        
+                        // 리스너 해제
+                        js.context.callMethod('tearDownAddressSelectedListener');
+                      })
+                    ]);
+                  } else {
+                    // 앱 환경에서는 모달 다이얼로그 사용
+                    AddressSearchDialog.show(
+                      context: context,
+                      onAddressSelected: (address) {
+                        setState(() {
+                          _addressController.text = address;
+                        });
+                      },
+                      onDetailAddressSelected: (address, detail) {
+                        setState(() {
+                          _addressController.text = address;
+                          _detailAddressController.text = detail;
+                        });
+                      },
+                    );
+                  }
                 },
-                onDetailAddressSelected: (address, detail) {
-                  // 상세 주소까지 포함한 전체 주소 처리
-                  _addressController.text = '$address $detail';
-                },
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: AbsorbPointer(
+                    child: CustomTextField(
+                      controller: _addressController,
+                      label: '권리소재지',
+                      hint: '권리소재지 주소를 검색하려면 클릭하세요',
+                      prefixIcon: Icons.location_on_outlined,
+                      suffixIcon: const Icon(Icons.search),
+                      maxLines: 2,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '권리소재지를 입력해주세요';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // 상세 주소 입력 필드 추가
+              CustomTextField(
+                controller: _detailAddressController,
+                label: '상세 주소',
+                hint: '상세 주소를 입력해주세요',
+                prefixIcon: Icons.home_outlined,
               ),
               const SizedBox(height: 30),
               
