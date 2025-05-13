@@ -229,7 +229,8 @@ class WebHeaderState extends State<WebHeader> {
                     hoveredMenu = null;
                   }),
                   child: Container(
-                    width: double.infinity,
+                    width: 1216,
+                    margin: const EdgeInsets.only(left: 300),
                     color: Colors.white,
                     padding: showSubmenu && hoveredMenu != null 
                       ? const EdgeInsets.symmetric(vertical: 24, horizontal: 48)
