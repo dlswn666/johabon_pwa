@@ -33,6 +33,10 @@ class WebHeader extends StatefulWidget {
 class WebHeaderState extends State<WebHeader> {
   String? hoveredMenu;
   bool showSubmenu = false;
+  OverlayEntry? _submenuOverlay;
+  
+  // 헤더 바의 고정 높이
+  static const double headerHeight = 120;
   
   // 메뉴 정의
   final List<Map<String, dynamic>> menuData = [
@@ -92,301 +96,245 @@ class WebHeaderState extends State<WebHeader> {
   ];
   
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // 1) 메인 헤더 바
-        Material(
-          elevation: 2,
-          color: Colors.white,
+  void dispose() {
+    _removeSubmenuOverlay();
+    super.dispose();
+  }
+  
+  void _showSubmenuOverlay(BuildContext context) {
+    _removeSubmenuOverlay();
+    
+    // 현재 헤더의 위치 및 크기 가져오기
+    final RenderBox renderBox = context.findRenderObject() as RenderBox;
+    final headerPos = renderBox.localToGlobal(Offset.zero);
+    
+    _submenuOverlay = OverlayEntry(
+      builder: (context) => Positioned(
+        top: headerPos.dy + headerHeight - 1,
+        left: 0,
+        width: MediaQuery.of(context).size.width,
+        child: Material(
+          elevation: 8,
           child: MouseRegion(
-            // 헤더 전체 MouseRegion: 이 안에서만 마우스가 떠나면 showSubmenu=false
             onExit: (_) {
-              // 서브메뉴 영역으로 들어갈 시간을 주기 위해 지연 처리
-              Future.delayed(const Duration(milliseconds: 100), () {
-                if (mounted && !showSubmenu) {
-                  setState(() {
-                    hoveredMenu = null;
-                  });
-                }
+              // 서브메뉴에서 마우스가 나가면 서브메뉴를 닫음
+              setState(() {
+                hoveredMenu = null;
+                showSubmenu = false;
               });
+              _removeSubmenuOverlay();
             },
             child: Container(
-              height: 120,
-              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+              width: double.infinity,
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 48),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 로고 버튼
-                  SizedBox(
-                    width: 400,
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, AppRoutes.home);
-                      },
-                      child: const Text(
-                        '작전현대아파트구역\n주택재개발정비사업조합',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontFamily: 'Wanted Sans',
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.primaryColor,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const Spacer(),
-
-                  // 나머지 메뉴들
-                  ...menuData.skip(1).map((menu) {
-                    final id         = menu['id']        as String;
-                    final title      = menu['title']     as String;
-                    final hasSubmenu = menu['hasSubmenu'] as bool;
-                    final isHover    = hoveredMenu == id;
-
-                    return MouseRegion(
-                      onEnter: (_) => setState(() {
-                        hoveredMenu = id;
-                        showSubmenu = hasSubmenu;
-                      }),
-                      onExit: (_) {
-                        // 서브메뉴가 표시되어 있지 않을 때만 hoveredMenu를 null로 설정
-                        if (!showSubmenu) {
-                          setState(() {
-                            hoveredMenu = null;
-                          });
-                        }
-                      },
-                      child: InkWell(
-                        onTap: () {
-                          // 클릭 시 해당 메뉴의 경로로 이동
-                          Navigator.pushNamed(context, menu['route'] as String);
-                        },
-                        hoverColor: Colors.transparent, // 커스텀 호버 효과 사용
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 8),
-                          width: 304,
-                          child: Text(
-                            title,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontFamily: 'Wanted Sans',
-                              fontWeight: FontWeight.w600,
-                              color: isHover
-                                ? AppTheme.primaryColor
-                                : AppTheme.textPrimaryColor,
-                            ),
+                  ...menuData
+                    .where((m) => (m['hasSubmenu'] as bool))
+                    .map<Widget>((m) {
+                      final String id = m['id'] as String;
+                      final List<MenuItem> items = m['submenu'] as List<MenuItem>;
+                      return Expanded(
+                        child: MouseRegion(
+                          onEnter: (_) => setState(() {
+                            hoveredMenu = id;
+                            showSubmenu = true;
+                          }),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                m['title'] as String,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.textPrimaryColor,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              ...items.map((it) {
+                                // 개별 서브메뉴 항목의 상태를 추적하기 위한 StatefulBuilder 사용
+                                return StatefulBuilder(
+                                  builder: (context, setItemState) {
+                                    bool isItemHovered = false;
+                                    
+                                    return MouseRegion(
+                                      onEnter: (_) => setItemState(() => isItemHovered = true),
+                                      onExit: (_) {
+                                        setItemState(() => isItemHovered = false);
+                                        // 개별 아이템에서 마우스가 나가도 서브메뉴가 닫히지 않도록 함
+                                        // 전체 서브메뉴 영역에서 나갈 때만 닫히도록 상위 MouseRegion에서 처리
+                                      },
+                                      child: InkWell(
+                                        onTap: () => Navigator.pushNamed(context, it.route),
+                                        hoverColor: Colors.transparent, // 커스텀 호버 효과 사용
+                                        child: Container(
+                                          width: double.infinity,
+                                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                                          decoration: BoxDecoration(
+                                            color: isItemHovered ? const Color(0xFFF2F2F2) : Colors.transparent,
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            it.title,
+                                            style: const TextStyle(
+                                              fontSize: 20, 
+                                              fontFamily: 'Wanted Sans', 
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              }).toList(),
+                            ],
                           ),
                         ),
-                      ),
-                    );
-                  }).toList(),
-
-                  const Spacer(),
-
-                  // 로그인/로그아웃
-                  if (widget.isLoggedIn) 
-                    TextButton(
-                      onPressed: () {
-                        Provider.of<AuthProvider>(context, listen: false).logout();
-                      },
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppTheme.primaryColor,
-                      ),
-                      child: const Text('로그아웃', textAlign: TextAlign.center, style: TextStyle(fontSize: 28, fontFamily: 'Wanted Sans', fontWeight: FontWeight.w600),),
-                    )
-                  else                  
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, AppRoutes.login);
-                      },
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppTheme.primaryColor,
-                      ),
-                      child: const Text('로그인', textAlign: TextAlign.center, style: TextStyle(fontSize: 28, fontFamily: 'Wanted Sans', fontWeight: FontWeight.w600),),
-                    ),
+                      );
+                    }).toList(),
                 ],
               ),
             ),
           ),
         ),
-
-        // 2) 메가메뉴 패널: 전체 헤더 바로 아래에 띄우기
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          height: showSubmenu && hoveredMenu != null ? null : 0,
-          curve: Curves.easeOutQuart,
-          child: ClipRect(
-            child: Opacity(
-              opacity: showSubmenu && hoveredMenu != null ? 1.0 : 0.0,
-              child: Material(
-                elevation: 8,
-                child: MouseRegion(
-                  onExit: (_) => setState(() {
-                    showSubmenu = false;
-                    hoveredMenu = null;
-                  }),
-                  child: Container(
-                    width: 1216,
-                    margin: const EdgeInsets.only(left: 300),
-                    color: Colors.white,
-                    padding: showSubmenu && hoveredMenu != null 
-                      ? const EdgeInsets.symmetric(vertical: 24, horizontal: 48)
-                      : EdgeInsets.zero,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ...menuData
-                          .where((m) => (m['hasSubmenu'] as bool))
-                          .map<Widget>((m) {
-                            final String id = m['id'] as String;
-                            final List<MenuItem> items = m['submenu'] as List<MenuItem>;
-                            return Expanded(
-                              child: MouseRegion(
-                                onEnter: (_) => setState(() {
-                                  hoveredMenu = id;
-                                  showSubmenu = true;
-                                }),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const SizedBox(height: 12),
-                                    ...items.map((it) {
-                                      // 개별 서브메뉴 항목의 상태를 추적하기 위한 StatefulBuilder 사용
-                                      return StatefulBuilder(
-                                        builder: (context, setItemState) {
-                                          bool isItemHovered = false;
-                                          
-                                          return MouseRegion(
-                                            onEnter: (_) => setItemState(() => isItemHovered = true),
-                                            onExit: (_) => setItemState(() => isItemHovered = false),
-                                            child: InkWell(
-                                              onTap: () => Navigator.pushNamed(context, it.route),
-                                              hoverColor: Colors.transparent, // 커스텀 호버 효과 사용
-                                              child: Container(
-                                                width: double.infinity,
-                                                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                                                decoration: BoxDecoration(
-                                                  color: isItemHovered ? const Color(0xFFF2F2F2) : Colors.transparent,
-                                                  borderRadius: BorderRadius.circular(4),
-                                                ),
-                                                child: Text(
-                                                  it.title,
-                                                  style: const TextStyle(
-                                                    fontSize: 20, 
-                                                    fontFamily: 'Wanted Sans', 
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      );
-                                    }).toList(),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }).toList(),                  
-                      ],
+      ),
+    );
+    
+    Overlay.of(context)!.insert(_submenuOverlay!);
+  }
+  
+  void _removeSubmenuOverlay() {
+    _submenuOverlay?.remove();
+    _submenuOverlay = null;
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: headerHeight,
+      child: Material(
+        elevation: 2,
+        color: Colors.white,
+        child: MouseRegion(
+          // 헤더에서 마우스가 벗어났을 때 처리
+          onExit: (_) {
+            // 마우스가 바로 서브메뉴로 이동할 수 있도록 약간의 지연 추가
+            // 단, 서브메뉴가 표시 중일 때만 지연 처리
+            if (showSubmenu) {
+              // 서브메뉴가 표시 중인 경우 아무것도 하지 않음 (서브메뉴의 onExit에서 처리)
+              return;
+            } else {
+              // 서브메뉴가 없는 경우 바로 처리
+              setState(() {
+                hoveredMenu = null;
+              });
+              _removeSubmenuOverlay();
+            }
+          },
+          child: Container(
+            height: headerHeight,
+            padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+            child: Row(
+              children: [
+                // 로고 버튼
+                SizedBox(
+                  width: 400,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, AppRoutes.home);
+                    },
+                    child: const Text(
+                      '작전현대아파트구역\n주택재개발정비사업조합',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontFamily: 'Wanted Sans',
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primaryColor,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-  
-  // 개별 서브메뉴 위젯 생성
-  Widget _buildSubmenu(Map<String, dynamic> menu) {
-    final menuId = menu['id'] as String;
-    final submenuItems = menu['submenu'] as List<MenuItem>;
-    
-    return Material(
-      elevation: 8, // 그림자 강화
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(4),
-      child: MouseRegion(
-        onEnter: (_) => setState(() => showSubmenu = true),
-        onExit: (_) => setState(() {
-          showSubmenu = false;
-          hoveredMenu = null;
-        }),
-        child: Container(
-          width: 210,  // 너비 증가
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade200),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: submenuItems.map((item) {
-              return StatefulBuilder(
-                builder: (context, setState) {
-                  bool isItemHovered = false;
-                  
+
+                const Spacer(),
+
+                // 나머지 메뉴들
+                ...menuData.skip(1).map((menu) {
+                  final id = menu['id'] as String;
+                  final title = menu['title'] as String;
+                  final hasSubmenu = menu['hasSubmenu'] as bool;
+                  final isHover = hoveredMenu == id;
+
                   return MouseRegion(
-                    onEnter: (_) => setState(() => isItemHovered = true),
-                    onExit: (_) => setState(() => isItemHovered = false),
+                    onEnter: (_) {
+                      setState(() {
+                        hoveredMenu = id;
+                        showSubmenu = hasSubmenu;
+                      });
+                      if (hasSubmenu) {
+                        _showSubmenuOverlay(context);
+                      } else {
+                        _removeSubmenuOverlay();
+                      }
+                    },
                     child: InkWell(
                       onTap: () {
-                        Navigator.pushNamed(context, item.route);
+                        Navigator.pushNamed(context, menu['route'] as String);
                       },
-                      hoverColor: Colors.transparent, // 커스텀 호버 효과를 위해 기본 호버 색상 제거
+                      hoverColor: Colors.transparent,
                       child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: isItemHovered ? const Color(0xFFF2F2F2) : Colors.transparent,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
+                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                        width: 204,
                         child: Text(
-                          item.title,
+                          title,
+                          textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: isItemHovered ? AppTheme.primaryColor : AppTheme.textPrimaryColor,
+                            fontSize: 28,
+                            fontFamily: 'Wanted Sans',
+                            fontWeight: FontWeight.w600,
+                            color: isHover
+                              ? AppTheme.primaryColor
+                              : AppTheme.textPrimaryColor,
                           ),
                         ),
                       ),
                     ),
                   );
-                }
-              );
-            }).toList(),
+                }).toList(),
+
+                const Spacer(),
+
+                // 로그인/로그아웃
+                if (widget.isLoggedIn) 
+                  TextButton(
+                    onPressed: () {
+                      Provider.of<AuthProvider>(context, listen: false).logout();
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppTheme.primaryColor,
+                    ),
+                    child: const Text('로그아웃', textAlign: TextAlign.center, style: TextStyle(fontSize: 28, fontFamily: 'Wanted Sans', fontWeight: FontWeight.w600),),
+                  )
+                else                  
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, AppRoutes.login);
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppTheme.primaryColor,
+                    ),
+                    child: const Text('로그인', textAlign: TextAlign.center, style: TextStyle(fontSize: 28, fontFamily: 'Wanted Sans', fontWeight: FontWeight.w600),),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
     );
-  }
-  
-  // 메뉴에 마우스 진입 시 처리
-  void _handleMenuEnter(String menuId) {
-    setState(() {
-      hoveredMenu = menuId;
-      final menuItem = menuData.firstWhere((m) => m['id'] == menuId, orElse: () => {'hasSubmenu': false});
-      showSubmenu = menuItem['hasSubmenu'] as bool;
-    });
-  }
-  
-  // 메뉴에서 마우스가 벗어날 때 처리
-  void _handleMenuExit() {
-    // 딜레이를 추가하여 사용자가 서브메뉴로 마우스를 이동할 수 있는 시간을 제공
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted && !showSubmenu) {
-        setState(() {
-          hoveredMenu = null;
-        });
-      }
-    });
   }
 }
 
