@@ -7,7 +7,7 @@ class AppTheme {
   static const Color accentColor = Color(0xFFF39C12);
   static const Color backgroundColor = Color(0xFFF7F9FC);
   static const Color cardColor = Colors.white;
-  static const Color textPrimaryColor = Color(0xFF333333);
+  static const Color textPrimaryColor = Color(0xFF41505D);
   static const Color textSecondaryColor = Color(0xFF666666);
   static const Color textTertiaryColor = Color(0xFF999999);
   static const Color dividerColor = Color(0xFFEEEEEE);

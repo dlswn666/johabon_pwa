@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:johabon_pwa/config/routes.dart';
 import 'package:johabon_pwa/config/theme.dart';
 import 'package:johabon_pwa/models/banner_model.dart';
@@ -11,11 +12,949 @@ import 'package:johabon_pwa/widgets/home/info_card.dart';
 import 'package:johabon_pwa/widgets/home/notice_card.dart';
 import 'package:provider/provider.dart';
 
+// 메뉴 아이템 클래스
+class MenuItem {
+  final String title;
+  final String route;
+  
+  MenuItem(this.title, this.route);
+}
+
+// 웹 헤더용 StatefulWidget
+class WebHeader extends StatefulWidget {
+  final bool isLoggedIn;
+  
+  const WebHeader({Key? key, required this.isLoggedIn}) : super(key: key);
+  
+  @override
+  WebHeaderState createState() => WebHeaderState();
+}
+
+class WebHeaderState extends State<WebHeader> {
+  String? hoveredMenu;
+  bool showSubmenu = false;
+  
+  // 메뉴 정의
+  final List<Map<String, dynamic>> menuData = [
+    {
+      'title': '작전현대아파트구역\n주택재개발정비사업조합',
+      'id': 'home',
+      'route': AppRoutes.home,
+      'hasSubmenu': false,
+      'submenu': <MenuItem>[],
+    },
+    {
+      'title': '조합소개',
+      'id': 'association',
+      'route': AppRoutes.associationIntro,
+      'hasSubmenu': true,
+      'submenu': [
+        MenuItem('조합장 인사', AppRoutes.associationIntro),
+        MenuItem('사무실 안내', AppRoutes.officeInfo),
+        MenuItem('조직도', AppRoutes.organizationChart),
+      ],
+    },
+    {
+      'title': '재개발 소개',
+      'id': 'development',
+      'route': AppRoutes.developmentProcess,
+      'hasSubmenu': true,
+      'submenu': [
+        MenuItem('재개발 진행 과정', AppRoutes.developmentProcess),
+        MenuItem('재개발 정보', AppRoutes.developmentInfo),
+      ],
+    },
+    {
+      'title': '커뮤니티',
+      'id': 'community',
+      'route': AppRoutes.notice,
+      'hasSubmenu': true,
+      'submenu': [
+        MenuItem('공지사항', AppRoutes.notice),
+        MenuItem('Q&A', AppRoutes.qna),
+        MenuItem('정보공유방', AppRoutes.infoSharing),
+      ],
+    },
+    {
+      'title': '관리자',
+      'id': 'admin',
+      'route': AppRoutes.adminSlide,
+      'hasSubmenu': true,
+      'submenu': [
+        MenuItem('슬라이드 관리', AppRoutes.adminSlide),
+        MenuItem('업체소개 관리', AppRoutes.adminCompany),
+        MenuItem('배너 관리', AppRoutes.adminBanner),
+        MenuItem('알림톡 관리', AppRoutes.adminNotification),
+        MenuItem('사용자 관리', AppRoutes.adminUser),
+        MenuItem('기본정보 관리', AppRoutes.adminBasicInfo),
+      ],
+    },
+  ];
+  
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // 1) 메인 헤더 바
+        Material(
+          elevation: 2,
+          color: Colors.white,
+          child: MouseRegion(
+            // 헤더 전체 MouseRegion: 이 안에서만 마우스가 떠나면 showSubmenu=false
+            onExit: (_) {
+              // 서브메뉴 영역으로 들어갈 시간을 주기 위해 지연 처리
+              Future.delayed(const Duration(milliseconds: 100), () {
+                if (mounted && !showSubmenu) {
+                  setState(() {
+                    hoveredMenu = null;
+                  });
+                }
+              });
+            },
+            child: Container(
+              height: 120,
+              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+              child: Row(
+                children: [
+                  // 로고 버튼
+                  SizedBox(
+                    width: 400,
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, AppRoutes.home);
+                      },
+                      child: const Text(
+                        '작전현대아파트구역\n주택재개발정비사업조합',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontFamily: 'Wanted Sans',
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.primaryColor,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const Spacer(),
+
+                  // 나머지 메뉴들
+                  ...menuData.skip(1).map((menu) {
+                    final id         = menu['id']        as String;
+                    final title      = menu['title']     as String;
+                    final hasSubmenu = menu['hasSubmenu'] as bool;
+                    final isHover    = hoveredMenu == id;
+
+                    return MouseRegion(
+                      onEnter: (_) => setState(() {
+                        hoveredMenu = id;
+                        showSubmenu = hasSubmenu;
+                      }),
+                      onExit: (_) {
+                        // 서브메뉴가 표시되어 있지 않을 때만 hoveredMenu를 null로 설정
+                        if (!showSubmenu) {
+                          setState(() {
+                            hoveredMenu = null;
+                          });
+                        }
+                      },
+                      child: InkWell(
+                        onTap: () {
+                          // 클릭 시 해당 메뉴의 경로로 이동
+                          Navigator.pushNamed(context, menu['route'] as String);
+                        },
+                        hoverColor: Colors.transparent, // 커스텀 호버 효과 사용
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 8),
+                          width: 304,
+                          child: Text(
+                            title,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontFamily: 'Wanted Sans',
+                              fontWeight: FontWeight.w600,
+                              color: isHover
+                                ? AppTheme.primaryColor
+                                : AppTheme.textPrimaryColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+
+                  const Spacer(),
+
+                  // 로그인/로그아웃
+                  if (widget.isLoggedIn) 
+                    TextButton(
+                      onPressed: () {
+                        Provider.of<AuthProvider>(context, listen: false).logout();
+                      },
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppTheme.primaryColor,
+                      ),
+                      child: const Text('로그아웃', textAlign: TextAlign.center, style: TextStyle(fontSize: 28, fontFamily: 'Wanted Sans', fontWeight: FontWeight.w600),),
+                    )
+                  else                  
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, AppRoutes.login);
+                      },
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppTheme.primaryColor,
+                      ),
+                      child: const Text('로그인', textAlign: TextAlign.center, style: TextStyle(fontSize: 28, fontFamily: 'Wanted Sans', fontWeight: FontWeight.w600),),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // 2) 메가메뉴 패널: 전체 헤더 바로 아래에 띄우기
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          height: showSubmenu && hoveredMenu != null ? null : 0,
+          curve: Curves.easeOutQuart,
+          child: ClipRect(
+            child: Opacity(
+              opacity: showSubmenu && hoveredMenu != null ? 1.0 : 0.0,
+              child: Material(
+                elevation: 8,
+                child: MouseRegion(
+                  onExit: (_) => setState(() {
+                    showSubmenu = false;
+                    hoveredMenu = null;
+                  }),
+                  child: Container(
+                    width: double.infinity,
+                    color: Colors.white,
+                    padding: showSubmenu && hoveredMenu != null 
+                      ? const EdgeInsets.symmetric(vertical: 24, horizontal: 48)
+                      : EdgeInsets.zero,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ...menuData
+                          .where((m) => (m['hasSubmenu'] as bool))
+                          .map<Widget>((m) {
+                            final String id = m['id'] as String;
+                            final List<MenuItem> items = m['submenu'] as List<MenuItem>;
+                            return Expanded(
+                              child: MouseRegion(
+                                onEnter: (_) => setState(() {
+                                  hoveredMenu = id;
+                                  showSubmenu = true;
+                                }),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(height: 12),
+                                    ...items.map((it) {
+                                      // 개별 서브메뉴 항목의 상태를 추적하기 위한 StatefulBuilder 사용
+                                      return StatefulBuilder(
+                                        builder: (context, setItemState) {
+                                          bool isItemHovered = false;
+                                          
+                                          return MouseRegion(
+                                            onEnter: (_) => setItemState(() => isItemHovered = true),
+                                            onExit: (_) => setItemState(() => isItemHovered = false),
+                                            child: InkWell(
+                                              onTap: () => Navigator.pushNamed(context, it.route),
+                                              hoverColor: Colors.transparent, // 커스텀 호버 효과 사용
+                                              child: Container(
+                                                width: double.infinity,
+                                                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                                                decoration: BoxDecoration(
+                                                  color: isItemHovered ? const Color(0xFFF2F2F2) : Colors.transparent,
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: Text(
+                                                  it.title,
+                                                  style: const TextStyle(
+                                                    fontSize: 20, 
+                                                    fontFamily: 'Wanted Sans', 
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    }).toList(),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),                  
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+  
+  // 개별 서브메뉴 위젯 생성
+  Widget _buildSubmenu(Map<String, dynamic> menu) {
+    final menuId = menu['id'] as String;
+    final submenuItems = menu['submenu'] as List<MenuItem>;
+    
+    return Material(
+      elevation: 8, // 그림자 강화
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(4),
+      child: MouseRegion(
+        onEnter: (_) => setState(() => showSubmenu = true),
+        onExit: (_) => setState(() {
+          showSubmenu = false;
+          hoveredMenu = null;
+        }),
+        child: Container(
+          width: 210,  // 너비 증가
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade200),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: submenuItems.map((item) {
+              return StatefulBuilder(
+                builder: (context, setState) {
+                  bool isItemHovered = false;
+                  
+                  return MouseRegion(
+                    onEnter: (_) => setState(() => isItemHovered = true),
+                    onExit: (_) => setState(() => isItemHovered = false),
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.pushNamed(context, item.route);
+                      },
+                      hoverColor: Colors.transparent, // 커스텀 호버 효과를 위해 기본 호버 색상 제거
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: isItemHovered ? const Color(0xFFF2F2F2) : Colors.transparent,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          item.title,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: isItemHovered ? AppTheme.primaryColor : AppTheme.textPrimaryColor,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+  
+  // 메뉴에 마우스 진입 시 처리
+  void _handleMenuEnter(String menuId) {
+    setState(() {
+      hoveredMenu = menuId;
+      final menuItem = menuData.firstWhere((m) => m['id'] == menuId, orElse: () => {'hasSubmenu': false});
+      showSubmenu = menuItem['hasSubmenu'] as bool;
+    });
+  }
+  
+  // 메뉴에서 마우스가 벗어날 때 처리
+  void _handleMenuExit() {
+    // 딜레이를 추가하여 사용자가 서브메뉴로 마우스를 이동할 수 있는 시간을 제공
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted && !showSubmenu) {
+        setState(() {
+          hoveredMenu = null;
+        });
+      }
+    });
+  }
+}
+
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    // 웹인지 앱인지 확인 (넓이 기준)
+    final isWeb = kIsWeb || MediaQuery.of(context).size.width > 800;
+    
+    return isWeb ? _buildWebHomeScreen(context) : _buildAppHomeScreen(context);
+  }
+  
+  // 웹 버전 홈 화면
+  Widget _buildWebHomeScreen(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final isLoggedIn = authProvider.isLoggedIn;
+    
+    // 임시 게시판 데이터
+    final List<Map<String, dynamic>> boardItems = [
+      {
+        'category': '공지사항',
+        'title': '2023년 조합 정기총회 개최 안내',
+        'date': '2023-12-01',
+      },
+      {
+        'category': '자유게시판',
+        'title': '재개발 일정에 대한 질문',
+        'date': '2023-11-28',
+      },
+      {
+        'category': '공지사항',
+        'title': '재개발 사업 진행 현황 보고',
+        'date': '2023-11-25',
+      },
+    ];
+
+    return Scaffold(
+      body: Column(
+        children: [
+          // 상단 헤더 - 최상단에 고정하여 배치
+          WebHeader(isLoggedIn: isLoggedIn),
+          
+          // 메인 콘텐츠 - 스크롤 가능한 영역
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  // 메인 배너 이미지
+                  _buildMainBanner(),
+                  
+                  // 콘텐츠 섹션
+                  _buildContentSection(context, boardItems),
+                  
+                  // 푸터
+                  _buildFooter(),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  // 메인 배너 이미지
+  Widget _buildMainBanner() {
+    return Container(
+      width: double.infinity,
+      height: 600,
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: NetworkImage('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'),
+          fit: BoxFit.cover,
+        ),
+      ),
+      child: Stack(
+        children: [
+          // 어두운 오버레이
+          Container(
+            color: Colors.black.withOpacity(0.4),
+          ),
+          
+          // 배너 텍스트
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  '작전현대아파트구역',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w300,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  '주택재개발정비사업조합',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 48,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  width: 60,
+                  height: 3,
+                  color: Colors.white,
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  '더 나은 미래를 위한 도약',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w300,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  // 콘텐츠 섹션
+  Widget _buildContentSection(BuildContext context, List<Map<String, dynamic>> boardItems) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 48),
+      color: Colors.white,
+      child: Column(
+        children: [
+          // 소개 섹션
+          const Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 300,
+                  child: Stack(
+                    children: [
+                      // 배경 이미지
+                      Positioned.fill(
+                        child: Image(
+                          image: NetworkImage('https://images.unsplash.com/photo-1464938050520-ef2270bb8ce8?q=80&w=2074&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      
+                      // 어두운 오버레이
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ),
+                      
+                      // 텍스트
+                      Positioned.fill(
+                        child: Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                '조합소개',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                '작전현대아파트구역 주택재개발정비사업조합은\n더 나은 주거환경을 만들기 위해 노력하고 있습니다.',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              
+              SizedBox(width: 24),
+              
+              Expanded(
+                child: SizedBox(
+                  height: 300,
+                  child: Stack(
+                    children: [
+                      // 배경 이미지 (개발 소개)
+                      Positioned.fill(
+                        child: Image(
+                          image: NetworkImage('https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      
+                      // 어두운 오버레이
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ),
+                      
+                      // 텍스트
+                      Positioned.fill(
+                        child: Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                '재개발 소개',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                '재개발 사업의 진행 과정과 미래 계획에 대해\n확인하실 수 있습니다.',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 80),
+          
+          // 소식 섹션
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 공지사항/소식
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          '최근 소식',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pushNamed(context, AppRoutes.notice);
+                          },
+                          child: const Text('더보기'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    ...boardItems.map((item) => _buildBoardItem(context, item)).toList(),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(width: 48),
+              
+              // 사무실 정보
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '사무실 안내',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      width: double.infinity,
+                      height: 300,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        image: const DecorationImage(
+                          image: NetworkImage('https://maps.googleapis.com/maps/api/staticmap?center=Incheon,Korea&zoom=13&size=600x300&maptype=roadmap&markers=color:red%7CIncheon,Korea&key=YOUR_API_KEY'),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '사무실 위치',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            '인천광역시 계양구 작전동 123-45',
+                            style: TextStyle(
+                              fontSize: 16,
+                              height: 1.5,
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            '연락처',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            '전화: 032-123-4567\n이메일: info@jakhyun.org',
+                            style: TextStyle(
+                              fontSize: 16,
+                              height: 1.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+  
+  // 게시판 아이템
+  Widget _buildBoardItem(BuildContext context, Map<String, dynamic> item) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: Colors.grey.shade200,
+            width: 1.0,
+          ),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                item['category'],
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppTheme.primaryColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                item['title'],
+                style: const TextStyle(
+                  fontSize: 16,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Text(
+              item['date'],
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  // 푸터
+  Widget _buildFooter() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 48),
+      color: Colors.grey.shade900,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 로고 및 저작권
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '재개발조합',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  '작전현대아파트구역 주택재개발정비사업조합',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '© 2023 작전현대아파트구역 주택재개발정비사업조합. All rights reserved.',
+                  style: TextStyle(
+                    color: Colors.grey.shade400,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // 주소 및 연락처
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '주소',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '인천광역시 계양구 작전동 123-45',
+                  style: TextStyle(
+                    color: Colors.grey.shade400,
+                    fontSize: 14,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  '연락처',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '전화: 032-123-4567\n이메일: info@jakhyun.org',
+                  style: TextStyle(
+                    color: Colors.grey.shade400,
+                    fontSize: 14,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // 개인정보 처리방침
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '약관 및 정책',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () {},
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey.shade400,
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(0, 30),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    alignment: Alignment.centerLeft,
+                  ),
+                  child: const Text('이용약관'),
+                ),
+                TextButton(
+                  onPressed: () {},
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey.shade400,
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(0, 30),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    alignment: Alignment.centerLeft,
+                  ),
+                  child: const Text('개인정보처리방침'),
+                ),
+                TextButton(
+                  onPressed: () {},
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey.shade400,
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(0, 30),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    alignment: Alignment.centerLeft,
+                  ),
+                  child: const Text('이메일무단수집거부'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 앱 버전 홈 화면
+  Widget _buildAppHomeScreen(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final isLoggedIn = authProvider.isLoggedIn;
     final isMember = authProvider.isMember;
@@ -110,7 +1049,7 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
-
+  
   Widget _buildLoginCard(BuildContext context) {
     return CustomCard(
       child: Column(
