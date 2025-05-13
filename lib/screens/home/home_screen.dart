@@ -111,8 +111,8 @@ class WebHeaderState extends State<WebHeader> {
     _submenuOverlay = OverlayEntry(
       builder: (context) => Positioned(
         top: headerPos.dy + headerHeight - 1,
-        left: 0,
-        width: MediaQuery.of(context).size.width,
+        left: 620,
+        width: 1216,
         child: Material(
           elevation: 8,
           child: MouseRegion(
@@ -125,7 +125,7 @@ class WebHeaderState extends State<WebHeader> {
               _removeSubmenuOverlay();
             },
             child: Container(
-              width: double.infinity,
+              width: MediaQuery.of(context).size.width,
               color: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 48),
               child: Row(
@@ -145,15 +145,7 @@ class WebHeaderState extends State<WebHeader> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                m['title'] as String,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.textPrimaryColor,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 12, width: 304,),
                               ...items.map((it) {
                                 // 개별 서브메뉴 항목의 상태를 추적하기 위한 StatefulBuilder 사용
                                 return StatefulBuilder(
@@ -288,7 +280,7 @@ class WebHeaderState extends State<WebHeader> {
                       hoverColor: Colors.transparent,
                       child: Container(
                         margin: const EdgeInsets.symmetric(horizontal: 8),
-                        width: 204,
+                        width: 304,
                         child: Text(
                           title,
                           textAlign: TextAlign.center,
