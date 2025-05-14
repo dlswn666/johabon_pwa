@@ -183,10 +183,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // 각 탭을 위한 샘플 게시글 데이터
   final List<PostItem> sampleNoticePosts = [
-    PostItem(id: 'n1', title: '[중요] 조합 정기총회 개최 안내 (2025-05-10)', content: '이것은 매우 매우 매우 긴 테스트용 문자열입니다. 이 문자열은 반드시 네 줄을 넘어가서 화면 끝에 줄임표가 표시되어야 합니다. 과연 이 긴 내용이 어떻게 처리될지 지켜봅시다. 계속해서 내용을 추가하여 네 줄을 확실히 넘기도록 하겠습니다. 하나 둘 셋 넷 다섯 여섯 일곱 여덟 아홉 열.', author: '관리자', date: '2025-04-20'),
+    PostItem(id: 'n1', title: '[중요] 조합 정기총회 개최 안내 (2025-05-10)', content: '조합원 여러분의 많은 참여 바랍니다. 상세 내용은 첨부파일을 확인해주세요...', author: '관리자', date: '2025-04-20'),
     PostItem(id: 'n2', title: '사업 진행 현황 업데이트 (4월 3주차)', content: '현재 철거 작업이 80% 완료되었으며, 이주 관련하여...', author: '관리자', date: '2025-04-18'),
     PostItem(id: 'n3', title: '조합 사무실 이전 안내', content: '5월 1일부터 새로운 사무실에서 업무를 시작합니다. 위치는...', author: '관리자', date: '2025-04-15'),
     PostItem(id: 'n4', title: '제휴 업체 선정 결과 공고', content: '투명한 심사를 통해 아래와 같이 제휴 업체가 선정되었음을 알려드립니다...', author: '관리자', date: '2025-04-10'),
+    PostItem(id: 'n5', title: '공지사항 테스트 5번 글', content: '이것은 다섯 번째 공지사항 테스트 게시물입니다. 내용이 충분히 길어 여러 줄을 차지할 수 있습니다.', author: '관리자', date: '2025-04-08'),
+    PostItem(id: 'n6', title: '공지사항 테스트 6번 글', content: '여섯 번째 공지사항입니다. 목록 테스트를 위해 추가되었습니다.', author: '관리자', date: '2025-04-05'),
+    PostItem(id: 'n7', title: '공지사항 테스트 7번 글 (더보기 확인용)', content: '일곱 번째 공지사항입니다. 이 글은 목록에 나오지 않아야 합니다.', author: '관리자', date: '2025-04-02'),
   ];
 
   final List<PostItem> sampleQnaPosts = [
@@ -194,6 +197,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     PostItem(id: 'q2', title: '이주비 대출 관련 질문', content: '이주비 대출 신청 시 필요한 서류와 절차에 대해 자세히 알려주세요...', author: '조합원B', date: '2025-04-19'),
     PostItem(id: 'q3', title: '어린이집 설치 계획 있나요?', content: '새 아파트 단지 내에 어린이집이 설치될 예정인지, 규모는 어느 정도인지 궁금합니다...', author: '입주예정C', date: '2025-04-17'),
     PostItem(id: 'q4', title: '주차 공간 배정 방식 문의', content: '세대당 주차 공간은 어떻게 배정되나요? 추가 주차 공간 확보는 가능한가요?...', author: '조합원D', date: '2025-04-12'),
+    PostItem(id: 'q5', title: 'Q&A 테스트 5번 질문', content: '다섯 번째 Q&A 테스트 질문입니다.', author: '조합원E', date: '2025-04-09'),
+    PostItem(id: 'q6', title: 'Q&A 테스트 6번 질문', content: '여섯 번째 Q&A 테스트 질문입니다.', author: '조합원F', date: '2025-04-06'),
+    PostItem(id: 'q7', title: 'Q&A 테스트 7번 질문 (더보기 확인용)', content: '일곱 번째 질문입니다. 목록에는 나오지 않아야 합니다.', author: '조합원G', date: '2025-04-03'),
   ];
 
   final List<PostItem> sampleInfoSharePosts = [
@@ -201,6 +207,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     PostItem(id: 'i2', title: '카풀 하실 분 찾습니다 (매일 아침 강남 방향)', content: '매일 아침 8시에 강남 방향으로 출근하는데 카풀 하실 분 계신가요? 유류비는...', author: '주민2', date: '2025-04-20'),
     PostItem(id: 'i3', title: '안 쓰는 유아용품 나눔합니다.', content: '아이가 커서 더 이상 사용하지 않는 유아용품들 나눔합니다. 상태는 깨끗하고...', author: '주민3', date: '2025-04-16'),
     PostItem(id: 'i4', title: '단지 내 헬스장 이용 후기', content: '새로 생긴 헬스장 기구도 다양하고 관리도 잘 되는 것 같아서 만족스럽네요! 다만...', author: '주민4', date: '2025-04-11'),
+    PostItem(id: 'i5', title: '정보공유방 테스트 5번', content: '다섯 번째 정보공유방 테스트 글입니다.', author: '주민5', date: '2025-04-07'),
+    PostItem(id: 'i6', title: '정보공유방 테스트 6번', content: '여섯 번째 정보공유방 테스트 글입니다.', author: '주민6', date: '2025-04-04'),
+    PostItem(id: 'i7', title: '정보공유방 테스트 7번 (더보기 확인용)', content: '일곱 번째 정보입니다. 목록에는 안 나옵니다.', author: '주민7', date: '2025-04-01'),
   ];
 
   @override
@@ -1269,7 +1278,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       );
     }
 
-    List<PostItem> listPosts = posts.length > 1 ? posts.sublist(1, posts.length > 4 ? 4 : posts.length) : [];
+    // 오른쪽 목록에 표시할 게시글 (2번째부터 최대 6개, 즉 인덱스 1~6)
+    List<PostItem> listPosts = posts.length > 1 ? posts.sublist(1, posts.length > 7 ? 7 : posts.length) : [];
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
@@ -1307,15 +1317,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           Expanded(
             flex: 2,
             child: Center(
-              child: TextButton(
-                onPressed: () {
-                  // TODO: 각 게시판 전체 목록 페이지로 이동 (boardTitle에 따라 분기)
-                  String route = AppRoutes.notice; // 기본값
-                  if (boardTitle == 'Q&A') route = AppRoutes.qna;
-                  if (boardTitle == '정보공유방') route = AppRoutes.infoSharing;
-                  Navigator.pushNamed(context, route);
-                },
-                child: const Text('+ 더보기', style: TextStyle(fontFamily: 'Wanted Sans', fontSize: 20, fontWeight: FontWeight.w700)),
+              child: Padding( // Center의 자식을 Padding으로 감싸서 하단 여백을 줍니다.
+                padding: const EdgeInsets.only(bottom: 32.0), // 예시 값, 원하는 만큼 조절하세요.
+                child: TextButton(
+                  onPressed: () {
+                    // TODO: 각 게시판 전체 목록 페이지로 이동 (boardTitle에 따라 분기)
+                    String route = AppRoutes.notice; // 기본값
+                    if (boardTitle == 'Q&A') route = AppRoutes.qna;
+                    if (boardTitle == '정보공유방') route = AppRoutes.infoSharing;
+                    Navigator.pushNamed(context, route);
+                  },
+                  child: const Text('+ 더보기', style: TextStyle(fontFamily: 'Wanted Sans', fontSize: 20, fontWeight: FontWeight.w700)),
+                ),
               ),
             )
           )
