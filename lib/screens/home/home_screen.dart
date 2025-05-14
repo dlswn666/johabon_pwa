@@ -152,12 +152,12 @@ class WebHeaderState extends State<WebHeader> {
         top: headerPos.dy + headerHeight -1, // 헤더 바로 아래에 위치
         left: submenuStartX, // 계산된 시작 x 좌표
         right: MediaQuery.of(context).size.width - submenuEndX, // 화면 전체 너비에서 끝 X 좌표를 뺌
-        // width: 1216, // 너비는 내부 컨텐츠에 의해 결정되도록 제거
-        child: Material(
+        child: Material( // Material 위젯
           elevation: 8,
-          child: MouseRegion(
+          type: MaterialType.transparency, // Material 타입을 transparency로 설정
+          child: MouseRegion( // 서브메뉴 전체를 감싸는 MouseRegion
             onExit: (_) {
-              // 서브메뉴에서 마우스가 나가면 서브메뉴를 닫음
+              // 서브메뉴에서 마우스가 나가면 서브메뉴를 닫음 (원래 로직 유지 또는 테스트를 위해 임시 주석 처리)
               setState(() {
                 hoveredMenu = null;
                 showSubmenu = false;
@@ -165,9 +165,8 @@ class WebHeaderState extends State<WebHeader> {
               _removeSubmenuOverlay();
             },
             child: Container(
-              // width: MediaQuery.of(context).size.width, // 전체 너비 대신 컨텐츠 너비 사용
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 0), // 좌우 패딩은 각 컬럼에서 처리
+              color: Colors.white, // 서브메뉴 전체 배경색 (필요에 따라 조정)
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 0),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -176,43 +175,38 @@ class WebHeaderState extends State<WebHeader> {
                     .map<Widget>((m) {
                       final String id = m['id'] as String;
                       final List<MenuItem> items = m['submenu'] as List<MenuItem>;
-                      // 각 메인 메뉴 항목의 너비와 동일하게 설정 (예: 304)
-                      // 메인 메뉴 항목 간 간격(예: 8*2 = 16)도 고려해야 할 수 있음.
-                      // 여기서는 메인 메뉴 항목 자체의 너비(304)로 가정합니다.
-                      return Expanded( // Container 대신 Expanded 사용
+                      return Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center, // 자식들을 중앙 정렬
                           children: [
                             const SizedBox(height: 12),
                             ...items.map((it) {
-                              // 개별 서브메뉴 항목의 상태를 추적하기 위한 StatefulBuilder 사용
                               return StatefulBuilder(
                                 builder: (context, setItemState) {
                                   bool isItemHovered = false;
-                                  
                                   return MouseRegion(
                                     onEnter: (_) => setItemState(() => isItemHovered = true),
-                                    onExit: (_) {
-                                      setItemState(() => isItemHovered = false);
-                                      // 개별 아이템에서 마우스가 나가도 서브메뉴가 닫히지 않도록 함
-                                      // 전체 서브메뉴 영역에서 나갈 때만 닫히도록 상위 MouseRegion에서 처리
-                                    },
-                                    child: InkWell(
-                                      onTap: () => Navigator.pushNamed(context, it.route),
-                                      hoverColor: Colors.transparent, // 커스텀 호버 효과 사용
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                                        decoration: BoxDecoration(
-                                          color: isItemHovered ? const Color(0xFFF2F2F2) : Colors.transparent,
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: Text(
-                                          it.title,
-                                          textAlign: TextAlign.center, // 텍스트 중앙 정렬
-                                          style: const TextStyle(
-                                            fontSize: 20, 
-                                            fontFamily: 'Wanted Sans', 
-                                            fontWeight: FontWeight.w600,
+                                    onExit: (_) => setItemState(() => isItemHovered = false),
+                                    child: Material( // 사용자가 제안한 Material 위젯 사용
+                                      // 기본 아이템 배경을 흰색(서브메뉴 전체 배경과 동일)으로 하고, 호버 시 0xFFF2F2F2로 변경
+                                      color: isItemHovered ? const Color(0xFFF2F2F2) : Colors.white, 
+                                      borderRadius: BorderRadius.circular(4),
+                                      child: InkWell(
+                                        borderRadius: BorderRadius.circular(4),
+                                        hoverColor: const Color(0xFFE0E0E0), // InkWell 자체의 호버 색상
+                                        splashColor: Colors.grey.withOpacity(0.1), // 약간의 물결 효과
+                                        highlightColor: Colors.grey.withOpacity(0.05), // 약간의 하이라이트 효과
+                                        onTap: () => Navigator.pushNamed(context, it.route),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                                          child: Text(
+                                            it.title,
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                              fontSize: 20, 
+                                              fontFamily: 'Wanted Sans', 
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -321,7 +315,7 @@ class WebHeaderState extends State<WebHeader> {
                       onTap: () {
                         Navigator.pushNamed(context, menu['route'] as String);
                       },
-                      hoverColor: Colors.transparent,
+                      hoverColor: Color(0xFFF2F2F2),
                       child: Container(
                         margin: const EdgeInsets.symmetric(horizontal: 8),
                         width: 304,
@@ -332,9 +326,7 @@ class WebHeaderState extends State<WebHeader> {
                             fontSize: 28,
                             fontFamily: 'Wanted Sans',
                             fontWeight: FontWeight.w600,
-                            color: isHover
-                              ? AppTheme.primaryColor
-                              : AppTheme.textPrimaryColor,
+                            color:  AppTheme.textPrimaryColor,
                           ),
                         ),
                       ),
