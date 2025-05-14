@@ -35,6 +35,9 @@ class WebHeaderState extends State<WebHeader> {
   bool showSubmenu = false;
   OverlayEntry? _submenuOverlay;
   
+  // 각 메뉴 항목의 GlobalKey를 저장하기 위한 Map
+  final Map<String, GlobalKey> _menuItemKeys = {};
+
   // 헤더 바의 고정 높이
   static const double headerHeight = 120;
   
@@ -96,6 +99,17 @@ class WebHeaderState extends State<WebHeader> {
   ];
   
   @override
+  void initState() {
+    super.initState();
+    // 서브메뉴가 있는 메뉴 항목에 대해 GlobalKey 초기화
+    for (var menu in menuData) {
+      if (menu['hasSubmenu'] as bool) {
+        _menuItemKeys[menu['id'] as String] = GlobalKey();
+      }
+    }
+  }
+  
+  @override
   void dispose() {
     _removeSubmenuOverlay();
     super.dispose();
@@ -104,15 +118,41 @@ class WebHeaderState extends State<WebHeader> {
   void _showSubmenuOverlay(BuildContext context) {
     _removeSubmenuOverlay();
     
-    // 현재 헤더의 위치 및 크기 가져오기
-    final RenderBox renderBox = context.findRenderObject() as RenderBox;
-    final headerPos = renderBox.localToGlobal(Offset.zero);
+    // 첫 번째 서브메뉴를 가진 메인 메뉴('조합소개')의 키를 가져옵니다.
+    GlobalKey? firstSubmenuKey = _menuItemKeys['association'];
+    // 마지막 서브메뉴를 가진 메인 메뉴('관리자')의 키를 가져옵니다.
+    GlobalKey? lastSubmenuKey = _menuItemKeys['admin'];
+
+    double submenuStartX = 0;
+    double submenuEndX = 0; // 마지막 메뉴의 끝 x 좌표
+
+    if (firstSubmenuKey?.currentContext != null) {
+      final RenderBox itemRenderBox = firstSubmenuKey!.currentContext!.findRenderObject() as RenderBox;
+      final itemPos = itemRenderBox.localToGlobal(Offset.zero);
+      submenuStartX = itemPos.dx;
+    } else {
+      submenuStartX = 620; // Fallback
+    }
+
+    if (lastSubmenuKey?.currentContext != null) {
+      final RenderBox itemRenderBox = lastSubmenuKey!.currentContext!.findRenderObject() as RenderBox;
+      final itemPos = itemRenderBox.localToGlobal(Offset.zero);
+      submenuEndX = itemPos.dx + itemRenderBox.size.width; // 아이템의 시작 x + 너비 = 끝 x
+    } else {
+      // Fallback: 화면 너비 또는 다른 합리적인 값
+      submenuEndX = MediaQuery.of(context).size.width - 684; // 대략적인 값, 조정 필요
+    }
     
+    // 헤더의 RenderBox를 가져와서 헤더의 y 위치를 계산합니다.
+    final RenderBox headerRenderBox = context.findRenderObject() as RenderBox;
+    final headerPos = headerRenderBox.localToGlobal(Offset.zero);
+
     _submenuOverlay = OverlayEntry(
       builder: (context) => Positioned(
-        top: headerPos.dy + headerHeight - 1,
-        left: 620,
-        width: 1216,
+        top: headerPos.dy + headerHeight -1, // 헤더 바로 아래에 위치
+        left: submenuStartX, // 계산된 시작 x 좌표
+        right: MediaQuery.of(context).size.width - submenuEndX, // 화면 전체 너비에서 끝 X 좌표를 뺌
+        // width: 1216, // 너비는 내부 컨텐츠에 의해 결정되도록 제거
         child: Material(
           elevation: 8,
           child: MouseRegion(
@@ -125,9 +165,9 @@ class WebHeaderState extends State<WebHeader> {
               _removeSubmenuOverlay();
             },
             child: Container(
-              width: MediaQuery.of(context).size.width,
+              // width: MediaQuery.of(context).size.width, // 전체 너비 대신 컨텐츠 너비 사용
               color: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 48),
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 0), // 좌우 패딩은 각 컬럼에서 처리
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -136,55 +176,52 @@ class WebHeaderState extends State<WebHeader> {
                     .map<Widget>((m) {
                       final String id = m['id'] as String;
                       final List<MenuItem> items = m['submenu'] as List<MenuItem>;
-                      return Expanded(
-                        child: MouseRegion(
-                          onEnter: (_) => setState(() {
-                            hoveredMenu = id;
-                            showSubmenu = true;
-                          }),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 12, width: 304,),
-                              ...items.map((it) {
-                                // 개별 서브메뉴 항목의 상태를 추적하기 위한 StatefulBuilder 사용
-                                return StatefulBuilder(
-                                  builder: (context, setItemState) {
-                                    bool isItemHovered = false;
-                                    
-                                    return MouseRegion(
-                                      onEnter: (_) => setItemState(() => isItemHovered = true),
-                                      onExit: (_) {
-                                        setItemState(() => isItemHovered = false);
-                                        // 개별 아이템에서 마우스가 나가도 서브메뉴가 닫히지 않도록 함
-                                        // 전체 서브메뉴 영역에서 나갈 때만 닫히도록 상위 MouseRegion에서 처리
-                                      },
-                                      child: InkWell(
-                                        onTap: () => Navigator.pushNamed(context, it.route),
-                                        hoverColor: Colors.transparent, // 커스텀 호버 효과 사용
-                                        child: Container(
-                                          width: double.infinity,
-                                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                                          decoration: BoxDecoration(
-                                            color: isItemHovered ? const Color(0xFFF2F2F2) : Colors.transparent,
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            it.title,
-                                            style: const TextStyle(
-                                              fontSize: 20, 
-                                              fontFamily: 'Wanted Sans', 
-                                              fontWeight: FontWeight.w600,
-                                            ),
+                      // 각 메인 메뉴 항목의 너비와 동일하게 설정 (예: 304)
+                      // 메인 메뉴 항목 간 간격(예: 8*2 = 16)도 고려해야 할 수 있음.
+                      // 여기서는 메인 메뉴 항목 자체의 너비(304)로 가정합니다.
+                      return Expanded( // Container 대신 Expanded 사용
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center, // 자식들을 중앙 정렬
+                          children: [
+                            const SizedBox(height: 12),
+                            ...items.map((it) {
+                              // 개별 서브메뉴 항목의 상태를 추적하기 위한 StatefulBuilder 사용
+                              return StatefulBuilder(
+                                builder: (context, setItemState) {
+                                  bool isItemHovered = false;
+                                  
+                                  return MouseRegion(
+                                    onEnter: (_) => setItemState(() => isItemHovered = true),
+                                    onExit: (_) {
+                                      setItemState(() => isItemHovered = false);
+                                      // 개별 아이템에서 마우스가 나가도 서브메뉴가 닫히지 않도록 함
+                                      // 전체 서브메뉴 영역에서 나갈 때만 닫히도록 상위 MouseRegion에서 처리
+                                    },
+                                    child: InkWell(
+                                      onTap: () => Navigator.pushNamed(context, it.route),
+                                      hoverColor: Colors.transparent, // 커스텀 호버 효과 사용
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                                        decoration: BoxDecoration(
+                                          color: isItemHovered ? const Color(0xFFF2F2F2) : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          it.title,
+                                          textAlign: TextAlign.center, // 텍스트 중앙 정렬
+                                          style: const TextStyle(
+                                            fontSize: 20, 
+                                            fontFamily: 'Wanted Sans', 
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                       ),
-                                    );
-                                  },
-                                );
-                              }).toList(),
-                            ],
-                          ),
+                                    ),
+                                  );
+                                },
+                              );
+                            }).toList(),
+                          ],
                         ),
                       );
                     }).toList(),
@@ -261,7 +298,14 @@ class WebHeaderState extends State<WebHeader> {
                   final hasSubmenu = menu['hasSubmenu'] as bool;
                   final isHover = hoveredMenu == id;
 
+                  // GlobalKey 할당
+                  Key? itemKey;
+                  if (_menuItemKeys.containsKey(id)) {
+                    itemKey = _menuItemKeys[id];
+                  }
+
                   return MouseRegion(
+                    key: itemKey, // 여기에 GlobalKey 할당
                     onEnter: (_) {
                       setState(() {
                         hoveredMenu = id;
