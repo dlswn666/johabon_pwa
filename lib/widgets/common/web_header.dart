@@ -251,7 +251,7 @@ class WebHeaderState extends State<WebHeader> {
                       Navigator.pushNamed(context, AppRoutes.home);
                     },
                     child: const Text(
-                      '작전현대아파트구역\n주택재개발정비사업조합',
+                      '미아동 791-2882일대\n신속통합 재개발 정비사업',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 24,

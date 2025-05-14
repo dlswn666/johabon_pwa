@@ -247,70 +247,71 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
   
   Widget _buildCommunitySection(BuildContext context) {
-    return Column( // 전체를 Column으로 감싸서 상단 탭 영역과 하단 바로가기 영역을 배치
-      children: [
-        Container( // 상단: 기존 탭 및 게시글 내용 영역
-          color: Colors.white, 
-          padding: const EdgeInsets.symmetric(vertical: 40.0, horizontal: 80.0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 1, // InformationPanel이 차지할 비율을 1로 수정
-                child: InformationPanel(boardDetails: boardInfoSampleData[0]),
-              ),
-              const SizedBox(width: 30),
-              Expanded(
-                flex: 4, // 오른쪽 탭/게시판 영역이 차지할 비율을 3으로 유지
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      height: 48,
-                      child: TabBar(
-                        controller: _tabController,
-                        isScrollable: false,
-                        labelColor: AppTheme.primaryColor,
-                        unselectedLabelColor: Colors.grey[600],
-                        indicatorColor: AppTheme.primaryColor,
-                        indicatorWeight: 3.0,
-                        labelStyle: const TextStyle(
-                          fontFamily: 'Wanted Sans',
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        unselectedLabelStyle: const TextStyle(
-                          fontFamily: 'Wanted Sans',
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        tabs: const [
-                          Tab(text: '공지사항'),
-                          Tab(text: 'Q&A'),
-                          Tab(text: '정보공유방'),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox( // TabBarView의 높이를 명시적으로 지정하거나 Flexible/Expanded 처리 필요
-                      height: 300, // 임시 높이, 실제 내용에 따라 조절 필요
-                      child: TabBarView(
-                        controller: _tabController,
-                        children: [
-                          _buildSingleBoardView(context, '공지사항', sampleNoticePosts),
-                          _buildSingleBoardView(context, 'Q&A', sampleQnaPosts),
-                          _buildSingleBoardView(context, '정보공유방', sampleInfoSharePosts),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+    return Container( // 전체 커뮤니티 섹션의 패딩과 배경 등을 관리
+      color: Colors.white, 
+      padding: const EdgeInsets.symmetric(vertical: 40.0, horizontal: 40.0), // 섹션 전체 좌우 패딩
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 왼쪽: Information Panel
+          Expanded(
+            flex: 1, 
+            child: InformationPanel(boardDetails: boardInfoSampleData[0]), // 사용자의 boardDetails 수정 반영
           ),
-        ),
-        _buildBottomQuickLinksSection(context), // 하단: 바로가기 및 협력업체 영역
-      ],
+          const SizedBox(width: 30), // InformationPanel과 오른쪽 컨텐츠 사이 간격 (사용자 수정 반영)
+
+          // 오른쪽: 탭 및 게시글 내용 + 하단 바로가기/협력업체 영역
+          Expanded(
+            flex: 4, // 오른쪽 영역의 flex 값 (사용자 수정 반영)
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 상단 탭 영역
+                SizedBox(
+                  height: 48,
+                  child: TabBar(
+                    controller: _tabController,
+                    isScrollable: false,
+                    labelColor: AppTheme.primaryColor,
+                    unselectedLabelColor: Colors.grey[600],
+                    indicatorColor: AppTheme.primaryColor,
+                    indicatorWeight: 3.0,
+                    labelStyle: const TextStyle(
+                      fontFamily: 'Wanted Sans',
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    unselectedLabelStyle: const TextStyle(
+                      fontFamily: 'Wanted Sans',
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    tabs: const [
+                      Tab(text: '공지사항'),
+                      Tab(text: 'Q&A'),
+                      Tab(text: '정보공유방'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16), // TabBar와 TabBarView 사이 간격
+                SizedBox( // TabBarView 컨테이너
+                  height: 300, // 임시 높이, 실제 내용에 따라 조절 필요
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildSingleBoardView(context, '공지사항', sampleNoticePosts),
+                      _buildSingleBoardView(context, 'Q&A', sampleQnaPosts),
+                      _buildSingleBoardView(context, '정보공유방', sampleInfoSharePosts),
+                    ],
+                  ),
+                ),
+                // 여기에 _buildBottomQuickLinksSection를 추가
+                _buildBottomQuickLinksSection(context), 
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
   
@@ -334,7 +335,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Text(
-                  '작전현대아파트구역',
+                  '미아동 791-2882일대  ',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 24,
@@ -344,7 +345,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  '주택재개발정비사업조합',
+                  '신속통합 재개발 정비사업',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 48,
@@ -1201,9 +1202,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         const SizedBox(height: 16), // 하단 간격 조정
         Row(
           children: [
-            Text(post.author, style: TextStyle(fontFamily: 'Wanted Sans', fontSize: 13, color: Colors.grey[600])),
+            Text(post.author, style: TextStyle(fontFamily: 'Wanted Sans', fontSize: 16, color: AppTheme.textPrimaryColor)),
             const Spacer(),
-            Text(post.date, style: TextStyle(fontFamily: 'Wanted Sans', fontSize: 13, color: Colors.grey[600])),
+            Text(post.date, style: TextStyle(fontFamily: 'Wanted Sans', fontSize: 16, color: AppTheme.textPrimaryColor)),
           ],
         ),
       ],
@@ -1221,7 +1222,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             '• ',
             style: TextStyle(
               fontSize: 16, 
-              color: Colors.grey[700], // 글머리 기호 색상
+              color: AppTheme.textPrimaryColor, // 글머리 기호 색상
               fontFamily: 'Wanted Sans',
             ),
           ),
@@ -1242,8 +1243,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             post.author,
             style: TextStyle(
               fontFamily: 'Wanted Sans',
-              fontSize: 13,
-              color: Colors.grey[600],
+              fontSize: 16,
+              color: AppTheme.textPrimaryColor,
             ),
           ),
           const SizedBox(width: 12),
@@ -1251,8 +1252,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             post.date,
             style: TextStyle(
               fontFamily: 'Wanted Sans',
-              fontSize: 13,
-              color: Colors.grey[600],
+              fontSize: 16,
+              color: AppTheme.textPrimaryColor,
             ),
           ),
         ],
@@ -1371,7 +1372,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildBottomQuickLinksSection(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
+      padding: const EdgeInsets.symmetric(vertical: 24.0), // horizontal 패딩 제거
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
