@@ -1207,7 +1207,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             child: _buildShortcutItem(
               context, 
               'assets/icons/naver.png', 
-              '네이버카페 \n바로가기',
+              '네이버카페',
               () => _launchURL('https://cafe.naver.com/yourcafe'),
               const Color(0xFF02C75C), // ARGB 값 수정
             ),
@@ -1218,7 +1218,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             child: _buildShortcutItem(
               context, 
               'assets/icons/youtube.png', 
-              '유튜브 채널 \n바로가기',
+              '유튜브',
               () => _launchURL('https://www.youtube.com/yourchannel'),
               const Color(0xFF41505D), // ARGB 값 수정
             ),
@@ -1229,7 +1229,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             child: _buildShortcutItem(
               context, 
               'assets/icons/kakao.png', 
-              '카카오톡\n단톡방',
+              '단톡방',
               () => _launchURL('https://open.kakao.com/o/yourchatlink'),
               const Color(0xFF381E1F), // ARGB 값 수정
             ),
@@ -1244,25 +1244,31 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0), // 좌우 패딩 추가
+        child: Column( // Row를 Column으로 변경
+          mainAxisSize: MainAxisSize.min, // 컨텐츠 크기만큼 차지
+          crossAxisAlignment: CrossAxisAlignment.center, // 가로 중앙 정렬
           children: [
             Image.asset(
               iconPath,
-              width: 58,
-              height: 58,
+              width: 58, 
+              height: 58, 
               errorBuilder: (context, error, stackTrace) {
-                return Icon(Icons.error, size: 24); // 에러 시 기본 아이콘
+                return const Icon(Icons.error, size: 48); // 에러 시 아이콘 크기 유지
               },
             ),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(fontFamily: 'Wanted Sans', fontSize: 16, color: color, fontWeight: FontWeight.w600),
-                overflow: TextOverflow.ellipsis,
+            const SizedBox(height: 8), // 아이콘과 텍스트 사이 간격
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Wanted Sans', 
+                fontSize: 13, // 폰트 크기 약간 작게 조정
+                color: color, 
+                fontWeight: FontWeight.w500
               ),
+              textAlign: TextAlign.center, // 텍스트 중앙 정렬
+              maxLines: 2, // 텍스트 최대 2줄
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

@@ -327,7 +327,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     
                     // 비밀번호 확인 입력 필드
                     _buildRegisterTextFieldRow(
-                      label: '비밀번호 확', // '인'이 잘리므로 일단 이렇게 표시
+                      label: '비밀번호 확인', // '인'이 잘리므로 일단 이렇게 표시
                       controller: _registerPasswordConfirmController,
                       hintText: '비밀번호를 다시 입력해주세요.',
                       obscureText: true,
@@ -475,7 +475,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               elevation: 0,
                             ),
                             child: Text(
-                              '뒤로가기',
+                              '취소',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
