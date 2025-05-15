@@ -1451,7 +1451,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       return const SizedBox.shrink(); // 광고 데이터 없으면 아무것도 표시 안 함
     }
     return Container(
-      height: 130, // 슬라이더 전체 높이 (아이템 높이 + 상하 패딩 고려)
+      height: 230, // 슬라이더 전체 높이 (아이템 높이 + 상하 패딩 고려)
       padding: const EdgeInsets.symmetric(vertical: 15.0),
       // color: Colors.blueGrey[50], // 섹션 배경색 (디버깅 또는 디자인용)
       child: PageView.builder(

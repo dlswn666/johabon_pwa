@@ -270,40 +270,41 @@ class WebHeaderState extends State<WebHeader> {
                     itemKey = _menuItemKeys[id];
                   }
 
-                  return MouseRegion(
-                    key: itemKey, 
-                    onEnter: (_) {
-                      bool overlayAlreadyCorrectlyShown = hoveredMenu == id && this.showSubmenu == true && _submenuOverlay != null && hasSubmenu;
+                  return Expanded(
+                    child: MouseRegion(
+                      key: itemKey, 
+                      onEnter: (_) {
+                        bool overlayAlreadyCorrectlyShown = hoveredMenu == id && this.showSubmenu == true && _submenuOverlay != null && hasSubmenu;
 
-                      setState(() {
-                        hoveredMenu = id;
-                        this.showSubmenu = hasSubmenu; 
-                      });
+                        setState(() {
+                          hoveredMenu = id;
+                          this.showSubmenu = hasSubmenu; 
+                        });
 
-                      if (hasSubmenu) {
-                        if (!overlayAlreadyCorrectlyShown) {
-                          _showSubmenuOverlay(context);
+                        if (hasSubmenu) {
+                          if (!overlayAlreadyCorrectlyShown) {
+                            _showSubmenuOverlay(context);
+                          }
+                        } else {
+                          _removeSubmenuOverlay();
                         }
-                      } else {
-                        _removeSubmenuOverlay();
-                      }
-                    },
-                    child: InkWell(
-                      onTap: () {
-                        Navigator.pushNamed(context, menu['route'] as String);
                       },
-                      hoverColor: const Color(0xFFF2F2F2),
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 8),
-                        width: 304,
-                        child: Text(
-                          title,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontFamily: 'Wanted Sans',
-                            fontWeight: FontWeight.w600,
-                            color:  AppTheme.textPrimaryColor,
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.pushNamed(context, menu['route'] as String);
+                        },
+                        hoverColor: const Color(0xFFF2F2F2),
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(
+                            title,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontFamily: 'Wanted Sans',
+                              fontWeight: FontWeight.w600,
+                              color:  AppTheme.textPrimaryColor,
+                            ),
                           ),
                         ),
                       ),
