@@ -233,89 +233,104 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       barrierDismissible: false,
       builder: (BuildContext context) {
         return Dialog(
+          backgroundColor: Colors.white, // 모달 배경 흰색으로 명시
+          elevation: 4, // 약간의 그림자 효과 (이미지에는 없지만, 구분 위해 추가. 원치 않으면 0)
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(8), // 이미지와 유사하게 모서리 둥글기 조정
           ),
           child: Container(
-            width: 550,
-            padding: const EdgeInsets.all(24),
+            width: 580,
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20), // 패딩 미세 조정
             child: Form(
               key: _registerFormKey,
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch, // 자식들을 가로로 꽉 채움
                   children: [
                     // 회원가입 타이틀
-                    const Text(
-                      '재개발/재건축 조합원 회원가입',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryColor,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    
-                    // ID
-                    TextFormField(
-                      controller: _registerIdController,
-                      decoration: InputDecoration(
-                        labelText: 'ID',
-                        hintText: 'ID를 입력해주세요',
-                        prefixIcon: const Icon(Icons.account_circle_outlined),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(4),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20.0),
+                      child: Text(
+                        '회원가입',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                          fontFamily: 'Wanted Sans',
                         ),
                       ),
+                    ),
+                    
+                    // ID 입력 필드
+                    _buildRegisterTextFieldRow(
+                      label: '아이디',
+                      controller: _registerIdController,
+                      hintText: '아이디를 입력하세요. (6자 이상)',
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'ID를 입력해주세요';
+                          return '아이디를 입력해주세요';
+                        }
+                        if (value.length < 6) {
+                          return '아이디는 6자 이상이어야 합니다.';
                         }
                         return null;
                       },
-                    ),
-                    const SizedBox(height: 15),
-                    
-                    // 비밀번호
-                    TextFormField(
-                      controller: _registerPasswordController,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: '비밀번호',
-                        hintText: '비밀번호를 입력해주세요',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(4),
+                      suffix: SizedBox(
+                        width: 90,
+                        height: 36,
+                        child: OutlinedButton(
+                          onPressed: () {
+                            // TODO: 아이디 중복 확인 로직
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('아이디 중복 확인 기능 구현 예정')),
+                            );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            side: BorderSide(color: Colors.grey.shade400),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          child: Text(
+                            '중복확인',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade700,
+                              fontFamily: 'Wanted Sans',
+                            ),
+                          ),
                         ),
                       ),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // 비밀번호 입력 필드
+                    _buildRegisterTextFieldRow(
+                      label: '비밀번호',
+                      controller: _registerPasswordController,
+                      hintText: '비밀번호를 입력하세요. (10자 이상)',
+                      obscureText: true,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return '비밀번호를 입력해주세요';
                         }
-                        if (value.length < 8) {
-                          return '비밀번호는 8자 이상이어야 합니다';
+                        if (value.length < 10) {
+                          return '비밀번호는 10자 이상이어야 합니다';
                         }
                         return null;
                       },
                     ),
-                    const SizedBox(height: 15),
+                    const SizedBox(height: 16),
                     
-                    // 비밀번호 확인
-                    TextFormField(
+                    // 비밀번호 확인 입력 필드
+                    _buildRegisterTextFieldRow(
+                      label: '비밀번호 확', // '인'이 잘리므로 일단 이렇게 표시
                       controller: _registerPasswordConfirmController,
+                      hintText: '비밀번호를 다시 입력해주세요.',
                       obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: '비밀번호 확인',
-                        hintText: '비밀번호를 다시 입력해주세요',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return '비밀번호 확인을 입력해주세요';
@@ -326,20 +341,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         return null;
                       },
                     ),
-                    const SizedBox(height: 15),
-                    
-                    // 이름(소유자명)
-                    TextFormField(
+                    const SizedBox(height: 16),
+
+                    // 이름(소유자명) 입력 필드
+                    _buildRegisterTextFieldRow(
+                      label: '이름(소유자)', // '명'이 잘리므로 일단 이렇게 표시
                       controller: _registerNameController,
-                      decoration: InputDecoration(
-                        labelText: '이름(소유자명)',
-                        hintText: '이름을 입력해주세요',
-                        prefixIcon: const Icon(Icons.person_outline),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
+                      hintText: '이름을 입력해주세요.',
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return '이름을 입력해주세요';
@@ -347,21 +355,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         return null;
                       },
                     ),
-                    const SizedBox(height: 15),
-                    
-                    // 전화번호
-                    TextFormField(
+                    const SizedBox(height: 16),
+
+                    // 휴대폰 번호 입력 필드
+                    _buildRegisterTextFieldRow(
+                      label: '휴대폰번호',
                       controller: _registerPhoneController,
+                      hintText: '연락 가능한 핸드폰 번호를 입력해주세요.',
                       keyboardType: TextInputType.phone,
-                      decoration: InputDecoration(
-                        labelText: '핸드폰 번호',
-                        hintText: '연락 가능한 핸드폰 번호를 입력해주세요',
-                        prefixIcon: const Icon(Icons.smartphone_outlined),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return '핸드폰 번호를 입력해주세요';
@@ -369,58 +370,42 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         return null;
                       },
                     ),
-                    const SizedBox(height: 15),
-                    
-                    // 생년월일 (캘린더 적용)
-                    GestureDetector(
+                    const SizedBox(height: 16),
+
+                    // 생년월일 입력 필드
+                    _buildRegisterTextFieldRow(
+                      label: '생년월일',
+                      controller: _registerBirthController,
+                      hintText: '1900.00.00',
+                      readOnly: true,
                       onTap: () => _selectDate(context),
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: AbsorbPointer(
-                          child: TextFormField(
-                            controller: _registerBirthController,
-                            decoration: InputDecoration(
-                              labelText: '생년월일',
-                              hintText: '생년월일을 선택해주세요',
-                              prefixIcon: const Icon(Icons.calendar_today_outlined),
-                              suffixIcon: const Icon(Icons.arrow_drop_down),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return '생년월일을 선택해주세요';
-                              }
-                              return null;
-                            },
-                          ),
-                        ),
-                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '생년월일을 선택해주세요';
+                        }
+                        return null;
+                      },
                     ),
-                    const SizedBox(height: 15),
-                    
-                    // 권리소재지
-                    GestureDetector(
+                    const SizedBox(height: 16),
+
+                    // 관리소재지 입력 필드
+                    _buildRegisterTextFieldRow(
+                      label: '관리소재지',
+                      controller: _registerAddressController,
+                      hintText: '클릭하여 주소를 검색하세요.',
+                      readOnly: true,
                       onTap: () {
                         if (kIsWeb) {
-                          // 웹 환경에서는 JavaScript 함수 직접 호출
                           js.context.callMethod('openKakaoPostcode');
-                          
-                          // 주소 선택 리스너 등록
                           js.context.callMethod('setupAddressSelectedListener', [
                             js.allowInterop((String address) {
                               setState(() {
                                 _registerAddressController.text = address;
                               });
-                              
-                              // 리스너 해제
                               js.context.callMethod('tearDownAddressSelectedListener');
                             })
                           ]);
                         } else {
-                          // 앱 환경에서는 모달 다이얼로그 사용
                           AddressSearchDialog.show(
                             context: context,
                             onAddressSelected: (address) {
@@ -429,109 +414,103 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               });
                             },
                             onDetailAddressSelected: (address, detail) {
+                              // 상세주소는 별도 필드에서 받으므로 여기서는 기본 주소만 처리
                               setState(() {
                                 _registerAddressController.text = address;
-                                _registerDetailAddressController.text = detail;
+                                // _registerDetailAddressController.text = detail; // 이 부분은 상세주소 필드에서 처리
                               });
                             },
                           );
                         }
                       },
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: AbsorbPointer(
-                          child: TextFormField(
-                            controller: _registerAddressController,
-                            decoration: InputDecoration(
-                              labelText: '권리소재지',
-                              hintText: '권리소재지 주소를 검색하려면 클릭하세요',
-                              prefixIcon: const Icon(Icons.location_on_outlined),
-                              suffixIcon: const Icon(Icons.search),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            ),
-                            textAlignVertical: TextAlignVertical.center,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return '권리소재지를 입력해주세요';
-                              }
-                              return null;
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-                    
-                    // 상세 주소 입력 필드 추가
-                    TextFormField(
-                      controller: _registerDetailAddressController,
-                      decoration: InputDecoration(
-                        labelText: '상세 주소',
-                        hintText: '상세 주소를 입력해주세요',
-                        prefixIcon: const Icon(Icons.home_outlined),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      textAlignVertical: TextAlignVertical.center,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return '상세 주소를 입력해주세요';
+                          return '관리소재지를 입력해주세요';
                         }
                         return null;
                       },
                     ),
-                    const SizedBox(height: 25),
+                    const SizedBox(height: 16),
+
+                    // 상세주소 입력 필드
+                    _buildRegisterTextFieldRow(
+                      label: '상세주소',
+                      controller: _registerDetailAddressController,
+                      hintText: '상세주소를 입력하세요.',
+                      validator: (value) { // 상세주소는 선택 사항일 수 있으므로, 필요에 따라 유효성 검사 추가
+                        // if (value == null || value.isEmpty) {
+                        //   return '상세주소를 입력해주세요';
+                        // }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 30),
                     
-                    // 안내 텍스트
+                    // 안내 텍스트 (기존 스타일 유지)
                     Container(
-                      padding: const EdgeInsets.all(10),
-                      child: const Text(
-                        '* 회원가입 신청 후 관리자 승인 절차가 필요합니다.\n* 승인 완료 시 등록하신 연락처로 알림이 발송됩니다.',
-                        style: TextStyle(fontSize: 18, color: AppTheme.textSecondaryColor, fontWeight: FontWeight.bold),
+                      padding: const EdgeInsets.symmetric(vertical:10, horizontal: 5),
+                      child: Text(
+                        '* 회원가입 신청 후 관리자 승인 절차가 필요합니다.\\n* 승인 완료 시 등록하신 연락처로 알림이 발송됩니다.',
+                        style: TextStyle(fontSize: 13, color: AppTheme.textSecondaryColor, fontWeight: FontWeight.normal, fontFamily: 'Wanted Sans', height: 1.4),
+                        textAlign: TextAlign.center,
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                     
                     // 버튼 영역
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                          child: const Text(
-                            '취소',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey.shade300,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              '뒤로가기',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black54,
+                                fontFamily: 'Wanted Sans',
+                              ),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        ElevatedButton(
-                          onPressed: _register,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryColor,
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _register,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF75D49B), // 이미지 참고
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              elevation: 0,
                             ),
-                          ),
-                          child: const Text(
-                            '회원가입 신청',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
+                            child: Text(
+                              '가입하기',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                fontFamily: 'Wanted Sans',
+                              ),
                             ),
                           ),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 10), // 하단 여백
                   ],
                 ),
               ),
@@ -539,6 +518,84 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           ),
         );
       },
+    );
+  }
+
+  // 회원가입 폼의 각 항목을 만드는 헬퍼 위젯
+  Widget _buildRegisterTextFieldRow({
+    required String label,
+    required TextEditingController controller,
+    required String hintText,
+    TextInputType? keyboardType,
+    bool obscureText = false,
+    bool readOnly = false,
+    FormFieldValidator<String>? validator,
+    VoidCallback? onTap,
+    Widget? suffix,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          flex: 2,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 15, 
+              color: const Color(0xFF4A5568), // 이미지 레이블 색상과 유사하게
+              fontFamily: 'Wanted Sans',
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        const SizedBox(width: 16), // 레이블과 필드 사이 간격 조정
+        Expanded(
+          flex: 5,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center, // suffix 버튼과 정렬 위해
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: controller,
+                  keyboardType: keyboardType,
+                  obscureText: obscureText,
+                  readOnly: readOnly,
+                  onTap: onTap,
+                  style: TextStyle( // 입력 텍스트 스타일
+                    fontFamily: 'Wanted Sans',
+                    fontSize: 15,
+                    color: Colors.black87,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: hintText,
+                    hintStyle: TextStyle(
+                      color: Colors.grey.shade500, 
+                      fontFamily: 'Wanted Sans', 
+                      fontSize: 14,
+                    ),
+                    border: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey.shade300, width: 1.0), // 기본 밑줄 색상 및 두께
+                    ),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey.shade300, width: 1.0),
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: AppTheme.primaryColor, width: 1.5),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10), // 내부 수직 패딩
+                    isDense: true, // 높이를 컴팩트하게
+                  ),
+                  validator: validator,
+                ),
+              ),
+              if (suffix != null) ...[
+                const SizedBox(width: 10),
+                suffix, // suffix 위젯 (예: 중복확인 버튼)
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -614,12 +671,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     return Align(
       alignment: Alignment.centerRight, // 로그인 폼을 오른쪽 정렬
       child: Container(
-        width: 420, // 로그인 폼 너비 조정
+        width: 500, // 로그인 폼 너비 조정
         margin: EdgeInsets.only(right: MediaQuery.of(context).size.width * 0.08), // 오른쪽 여백
         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 50), // 내부 패딩
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12), // 모서리 둥글기
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.25), // 그림자 색상 및 투명도
@@ -681,7 +737,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               padding: const EdgeInsets.all(30),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.2),
@@ -710,40 +765,24 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             child: Column(
               children: [
                 // 문서 아이콘 (Figma 디자인의 페이퍼 아이콘과 유사)
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(5),
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        const Color(0xFF66DE9C), // 상단 녹색
-                        const Color(0xFF3BB643), // 하단 녹색
-                      ],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF4EDD5C).withOpacity(0.5),
-                        blurRadius: 21,
-                        spreadRadius: 0,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.article_outlined,
-                    size: 40,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 20),
                 const Text(
-                  '작전현대아파트구역\n주택재개발정비사업조합',
+                  '미아동 791-2882일대',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 32,
+                    fontWeight: FontWeight.w800,
+                    fontFamily: 'Wanted Sans',
+                    color: Color(0xFF41505D), // Figma의 텍스트 색상
+                    height: 1.4, // 줄 간격
+                  ),
+                ),
+                const Text(
+                  '신속통합 재개발 정비사업조합',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w500,
+                    fontFamily: 'Wanted Sans',
                     color: Color(0xFF41505D), // Figma의 텍스트 색상
                     height: 1.4, // 줄 간격
                   ),
@@ -791,6 +830,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   color: Color(0xFF999999),
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
+                  fontFamily: 'Wanted Sans',
                 ),
                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 border: InputBorder.none,
@@ -825,6 +865,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   color: Color(0xFF999999),
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
+                  fontFamily: 'Wanted Sans',
                 ),
                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 border: InputBorder.none,
@@ -846,13 +887,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           // 로그인 버튼 - Figma 스타일 적용
           SizedBox(
             width: 256, // Figma 너비
+            height: 50,
             child: ElevatedButton(
               onPressed: _isLoading ? null : _login,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF75D49B), // Figma 색상
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4), // Figma 둥글기
+                  borderRadius: BorderRadius.circular(2), // Figma 둥글기
                 ),
                 elevation: 0, // 그림자 없음
               ),
@@ -870,6 +912,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
+                        fontFamily: 'Wanted Sans',
                         color: Color(0xFF22675F), // Figma 텍스트 색상
                       ),
                     ),
@@ -879,7 +922,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           const SizedBox(height: 28), // Figma 간격
           
           // 회원가입 및 ID/PW 찾기 버튼 - Figma 스타일 적용
-          Row(
+          Column(
             mainAxisAlignment: MainAxisAlignment.center, // 중앙 정렬
             children: [
               TextButton(
@@ -936,7 +979,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   ),
                 ),
               ),
-              const SizedBox(width: 16), // 간격 조정
+              const SizedBox(height:16), // 간격 조정
               TextButton(
                 onPressed: () {
                   if (isWeb) {
