@@ -12,6 +12,7 @@ import 'package:johabon_pwa/widgets/home/info_card.dart';
 import 'package:johabon_pwa/widgets/home/notice_card.dart';
 import 'package:provider/provider.dart';
 import '../../widgets/common/web_header.dart';
+import '../../widgets/common/web_footer.dart'; // WebFooter 임포트 추가
 // import 'package:url_launcher/url_launcher.dart'; // 임시로 주석 처리
 import 'dart:math'; // Random 클래스 사용을 위해 추가
 import 'dart:async'; // Timer 사용을 위해 추가
@@ -328,7 +329,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   _buildMainBanner(),
                   _buildCommunitySection(context),
                   _buildAdSliderSection(context), // 광고 슬라이더 섹션 추가
-                  _buildFooter(),
+                  const WebFooter(), // _buildFooter() 대신 WebFooter() 사용
                 ],
               ),
             ),

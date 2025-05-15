@@ -36,13 +36,6 @@ class WebHeaderState extends State<WebHeader> {
   // 메뉴 정의
   final List<Map<String, dynamic>> menuData = [
     {
-      'title': '작전현대아파트구역\n주택재개발정비사업조합',
-      'id': 'home',
-      'route': AppRoutes.home,
-      'hasSubmenu': false,
-      'submenu': <MenuItem>[],
-    },
-    {
       'title': '조합소개',
       'id': 'association',
       'route': AppRoutes.associationIntro,
@@ -252,7 +245,7 @@ class WebHeaderState extends State<WebHeader> {
                     },
                     style: TextButton.styleFrom(overlayColor: Colors.transparent),
                     child: Text(
-                      menuData[0]['title'] as String,
+                      '미아동 791-2882일대\n신속통합 재개발 정비사업',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 24,
@@ -266,7 +259,7 @@ class WebHeaderState extends State<WebHeader> {
 
                 const Spacer(),
 
-                ...menuData.skip(1).map((menu) {
+                ...menuData.map((menu) {
                   final id = menu['id'] as String;
                   final title = menu['title'] as String;
                   final hasSubmenu = menu['hasSubmenu'] as bool;
