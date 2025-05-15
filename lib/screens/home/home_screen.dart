@@ -14,6 +14,7 @@ import 'package:provider/provider.dart';
 import '../../widgets/common/web_header.dart';
 // import 'package:url_launcher/url_launcher.dart'; // 임시로 주석 처리
 import 'dart:math'; // Random 클래스 사용을 위해 추가
+import 'dart:async'; // Timer 사용을 위해 추가
 
 // API 응답을 가정한 샘플 데이터 (HomeScreen 클래스 바깥에 정의)
 const List<Map<String, dynamic>> boardInfoSampleData = [
@@ -53,6 +54,21 @@ class PartnerItem {
     required this.id,
     required this.introduction,
     required this.name,
+  });
+}
+
+// AdBannerItem 모델 정의 (새로 추가)
+class AdBannerItem {
+  final String id;
+  final String? imageUrl; // 이미지가 없을 수 있으므로 nullable
+  final String altText;
+  final String? linkUrl; // 클릭 시 이동할 URL (선택 사항)
+
+  AdBannerItem({
+    required this.id,
+    this.imageUrl,
+    required this.altText,
+    this.linkUrl,
   });
 }
 
@@ -177,6 +193,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   TabController? _tabController;
+  PageController? _adPageController; // 광고 슬라이더용 PageController 추가
+  Timer? _adSlideTimer; // 광고 자동 슬라이드용 Timer 추가
+  int _currentAdPage = 0; // 광고 슬라이더 초기 페이지 (무한 스크롤용)
 
   final List<Map<String, dynamic>> boardItems = [
     {
@@ -229,15 +248,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // 샘플 협력업체 데이터 (새로 추가)
   final List<PartnerItem> _allPartners = [
-    PartnerItem(id: 'p1', introduction: '협력업체 1 소개', name: '주식회사 감성건축'),
-    PartnerItem(id: 'p2', introduction: '협력업체 2 소개', name: '미래도시설계'),
-    PartnerItem(id: 'p3', introduction: '협력업체 3 소개', name: '안전제일 건설'),
-    PartnerItem(id: 'p4', introduction: '협력업체 4 소개', name: '더조은 법률사무소'),
-    PartnerItem(id: 'p5', introduction: '협력업체 5 소개', name: '우리 세무회계'),
+    PartnerItem(id: 'p1', introduction: '주식회사 감성건축은 혁신적인 디자인을 제공하며, 고객 맞춤형 솔루션을 통해 건축의 새로운 기준을 제시합니다.', name: '주식회사 감성건축'),
+    PartnerItem(id: 'p2', introduction: '미래도시설계는 지속 가능한 도시 개발을 위한 창의적이고 실용적인 계획을 수립합니다.', name: '미래도시설계'),
+    PartnerItem(id: 'p3', introduction: '안전제일 건설은 모든 프로젝트에서 안전을 최우선으로 생각하며, 고품질 시공을 약속드립니다.', name: '안전제일 건설'),
+    PartnerItem(id: 'p4', introduction: '더조은 법률사무소는 전문적인 법률 서비스를 제공하여, 고객의 권익 보호를 최우선으로 합니다.', name: '더조은 법률사무소'),
+    PartnerItem(id: 'p5', introduction: '우리 세무회계는 맞춤형 세무 및 회계 서비스를 제공하며, 고객의 재정적 성공을 지원합니다.', name: '우리 세무회계'),
   ];
 
   // 화면에 표시될 랜덤 협력업체 리스트 (새로 추가)
   List<PartnerItem> _displayedPartners = [];
+
+  // 샘플 광고 배너 데이터 (새로 추가)
+  final List<AdBannerItem> _adBanners = [
+    AdBannerItem(id: 'ad1', altText: '광고 1: 현대건설 건축자재 Sale', imageUrl: 'https://via.placeholder.com/320x100/FF0000/FFFFFF?Text=Ad+1'),
+    AdBannerItem(id: 'ad2', altText: '광고 2: 삼화 철강 자재', imageUrl: 'https://via.placeholder.com/320x100/00FF00/FFFFFF?Text=Ad+2'),
+    AdBannerItem(id: 'ad3', altText: '광고 3: 건축자재 백화점', imageUrl: 'https://via.placeholder.com/320x100/0000FF/FFFFFF?Text=Ad+3'),
+    AdBannerItem(id: 'ad4', altText: '광고 4: 타일 시공 청소 업체 홍보', imageUrl: 'https://via.placeholder.com/320x100/FFFF00/000000?Text=Ad+4'),
+    AdBannerItem(id: 'ad5', altText: '광고 5: 또 다른 청소 업체', imageUrl: 'https://via.placeholder.com/320x100/FF00FF/FFFFFF?Text=Ad+5'),
+  ];
 
   @override
   void initState() {
@@ -248,12 +276,35 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final random = Random();
     final shuffledPartners = List<PartnerItem>.from(_allPartners)..shuffle(random);
     _displayedPartners = shuffledPartners.take(3).toList();
+
+    // 광고 슬라이더 초기화 (새로 추가)
+    if (_adBanners.isNotEmpty) {
+      _currentAdPage = _adBanners.length * 100; // 왼쪽으로 스크롤 할 여지
+      _adPageController = PageController(initialPage: _currentAdPage, viewportFraction: 0.35); // viewportFraction 수정하여 3개 보이도록
+      _startAdSlideTimer();
+    }
   }
 
   @override
   void dispose() {
     _tabController?.dispose();
+    _adPageController?.dispose(); // PageController dispose 추가
+    _adSlideTimer?.cancel(); // Timer cancel 추가
     super.dispose();
+  }
+
+  // 광고 자동 슬라이드 타이머 시작 함수 (새로 추가)
+  void _startAdSlideTimer() {
+    _adSlideTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (_adPageController != null && _adPageController!.hasClients) {
+        _currentAdPage++;
+        _adPageController!.animateToPage(
+          _currentAdPage,
+          duration: const Duration(milliseconds: 700),
+          curve: Curves.easeOutQuad, // 부드러운 이동 효과
+        );
+      }
+    });
   }
 
   @override
@@ -276,7 +327,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 children: [
                   _buildMainBanner(),
                   _buildCommunitySection(context),
-                  _buildContentSection(context, boardItems),
+                  _buildAdSliderSection(context), // 광고 슬라이더 섹션 추가
                   _buildFooter(),
                 ],
               ),
@@ -413,236 +464,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildContentSection(BuildContext context, List<Map<String, dynamic>> boardItems) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 48),
-      color: Colors.white,
-      child: Column(
-        children: [
-          const Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 300,
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: Image(
-                          image: NetworkImage('https://images.unsplash.com/photo-1464938050520-ef2270bb8ce8?q=80&w=2074&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      Positioned.fill(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                          ),
-                        ),
-                      ),
-                      Positioned.fill(
-                        child: Padding(
-                          padding: EdgeInsets.all(24),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                '조합소개',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  fontFamily: 'Wanted Sans',
-                                ),
-                              ),
-                              SizedBox(height: 16),
-                              Text(
-                                '작전현대아파트구역 주택재개발정비사업조합은\n더 나은 주거환경을 만들기 위해 노력하고 있습니다.',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  height: 1.5,
-                                  fontFamily: 'Wanted Sans',
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(width: 24),
-              Expanded(
-                child: SizedBox(
-                  height: 300,
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: Image(
-                          image: NetworkImage('https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      Positioned.fill(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                          ),
-                        ),
-                      ),
-                      Positioned.fill(
-                        child: Padding(
-                          padding: EdgeInsets.all(24),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                '재개발 소개',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  fontFamily: 'Wanted Sans',
-                                ),
-                              ),
-                              SizedBox(height: 16),
-                              Text(
-                                '재개발 사업의 진행 과정과 미래 계획에 대해\n확인하실 수 있습니다.',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  height: 1.5,
-                                  fontFamily: 'Wanted Sans',
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 80),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          '최근 소식',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'Wanted Sans',
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pushNamed(context, AppRoutes.notice);
-                          },
-                          child: const Text('더보기', style: TextStyle(fontFamily: 'Wanted Sans')),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    ...boardItems.map((item) => _buildBoardItem(context, item)).toList(),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 48),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      '사무실 안내',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Wanted Sans',
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      width: double.infinity,
-                      height: 300,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        image: const DecorationImage(
-                          image: NetworkImage('https://maps.googleapis.com/maps/api/staticmap?center=Incheon,Korea&zoom=13&size=600x300&maptype=roadmap&markers=color:red%7CIncheon,Korea&key=YOUR_API_KEY'),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '사무실 위치',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'Wanted Sans',
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            '인천광역시 계양구 작전동 123-45',
-                            style: TextStyle(
-                              fontSize: 16,
-                              height: 1.5,
-                              fontFamily: 'Wanted Sans',
-                            ),
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            '연락처',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'Wanted Sans',
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            '전화: 032-123-4567\n이메일: info@jakhyun.org',
-                            style: TextStyle(
-                              fontSize: 16,
-                              height: 1.5,
-                              fontFamily: 'Wanted Sans',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ),
         ],
       ),
@@ -1378,7 +1199,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         borderRadius: BorderRadius.circular(8.0),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center, // 세로 가운데 정렬로 변경
         children: [
           Expanded(
             flex: 1,
@@ -1468,26 +1289,38 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // 협력업체 리스트 아이템을 만드는 헬퍼 위젯 (새로 추가)
   Widget _buildPartnerListItem(BuildContext context, PartnerItem partner) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0), // 아이템 간 수직 간격
+      padding: const EdgeInsets.symmetric(vertical: 10.0), // 아이템 간 수직 간격 조정
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween, // 양쪽 끝으로 정렬
+        crossAxisAlignment: CrossAxisAlignment.start, // 모든 자식을 상단 기준으로 정렬
         children: [
-          Text(
-            partner.introduction,
-            style: TextStyle(
-              fontFamily: 'Wanted Sans', 
-              fontSize: 18, 
-              color: AppTheme.textPrimaryColor, // 테마 색상 사용 또는 직접 지정
-              fontWeight: FontWeight.w600, // 이미지와 유사한 폰트 두께
+          Expanded(
+            flex: 6, // 설명 부분이 더 많은 공간을 차지하도록 비율 조정
+            child: Text(
+              partner.introduction.length > 80 
+                ? partner.introduction.substring(0, 80) + '...' 
+                : partner.introduction, // 80자 제한
+              style: TextStyle(
+                fontFamily: 'Wanted Sans', 
+                fontSize: 18, 
+                color: AppTheme.textPrimaryColor, 
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.left,
+              overflow: TextOverflow.ellipsis, // 내용이 넘칠 경우 말줄임표
             ),
           ),
-          Text(
-            partner.name,
-            style: TextStyle(
-              fontFamily: 'Wanted Sans', 
-              fontSize: 16, 
-              color: AppTheme.textPrimaryColor, // 이미지와 유사한 색상
-              fontWeight: FontWeight.w400,
+          SizedBox(width: 20), // 각 섹션 사이 간격
+          Expanded(
+            flex: 2, // 비율 조정 가능
+            child: Text(
+              partner.name,
+              style: TextStyle(
+                fontFamily: 'Wanted Sans', 
+                fontSize: 16, 
+                color: AppTheme.textPrimaryColor, 
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.left, // 업체명은 오른쪽 정렬
             ),
           ),
         ],
@@ -1502,6 +1335,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         crossAxisAlignment: CrossAxisAlignment.start, // stretch 대신 start로 변경
         children: [
           Expanded(
+            flex: 1,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1518,6 +1352,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           SizedBox(width: 16),
           Expanded(
+            flex: 2,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1558,6 +1393,79 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         content: Text('$urlString 링크를 클릭했습니다.\n(url_launcher 패키지 추가 후 실제 동작합니다)'),
         duration: Duration(seconds: 2),
       )
+    );
+  }
+
+  // 광고 배너 아이템 위젯 (새로 추가)
+  Widget _buildAdBannerItem(BuildContext context, AdBannerItem adItem) {
+    return Container(
+      width: 320,
+      height: 100,
+      margin: const EdgeInsets.symmetric(horizontal: 8.0), // 아이템 간 간격
+      decoration: BoxDecoration(
+        color: Colors.grey[300], // 이미지 없을 시 배경색
+        borderRadius: BorderRadius.circular(8.0),
+        border: Border.all(color: Colors.grey[400]!) // 테두리 추가
+      ),
+      child: ClipRRect( // 이미지가 borderRadius를 따르도록
+        borderRadius: BorderRadius.circular(8.0),
+        child: adItem.imageUrl != null && adItem.imageUrl!.isNotEmpty
+            ? Image.network(
+                adItem.imageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Center(
+                    child: Text(
+                      adItem.altText,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 14, color: Colors.black54),
+                    ),
+                  );
+                },
+                loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                          : null,
+                    ),
+                  );
+                },
+              )
+            : Center(
+                child: Text(
+                  adItem.altText,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: Colors.black54),
+                ),
+              ),
+      ),
+    );
+  }
+
+  // 광고 슬라이더 섹션 위젯 (새로 추가)
+  Widget _buildAdSliderSection(BuildContext context) {
+    if (_adBanners.isEmpty) {
+      return const SizedBox.shrink(); // 광고 데이터 없으면 아무것도 표시 안 함
+    }
+    return Container(
+      height: 130, // 슬라이더 전체 높이 (아이템 높이 + 상하 패딩 고려)
+      padding: const EdgeInsets.symmetric(vertical: 15.0),
+      // color: Colors.blueGrey[50], // 섹션 배경색 (디버깅 또는 디자인용)
+      child: PageView.builder(
+        controller: _adPageController,
+        // itemCount: _adBanners.length, // 무한 스크롤을 위해 주석 처리 또는 매우 큰 값
+        itemBuilder: (context, pageIndex) {
+          final itemIndex = pageIndex % _adBanners.length;
+          return _buildAdBannerItem(context, _adBanners[itemIndex]);
+        },
+        onPageChanged: (page) {
+          // 사용자가 직접 스크롤 시 _currentAdPage 업데이트 (선택적이지만 권장)
+          // _currentAdPage = page; 
+          // 무한 스크롤 시에는 이부분이 자동 스크롤과 충돌할 수 있어 타이머 재시작 로직이 필요할 수 있음
+        },
+      ),
     );
   }
 } 
