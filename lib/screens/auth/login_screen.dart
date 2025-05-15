@@ -634,6 +634,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             },
           ),
           // 배경 위 색상 처리 -> 사용자 요청에 따라 수정
+          if(isWeb)
           Row(
             children: [
               Expanded(
@@ -697,36 +698,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // 앱 버전의 로고 및 타이틀
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                children: [
-                  Image.asset(
-                    'images/logo.jpg',
-                    width: 120,
-                    height: 120,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(height: 15),
-                  const Text(
-                    '재개발/재건축 조합원 홈페이지',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black54,
-                          offset: Offset(1, 1),
-                          blurRadius: 3,
-                        ),
-                      ],
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
             
             const SizedBox(height: 30),
             
@@ -765,22 +736,22 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             child: Column(
               children: [
                 // 문서 아이콘 (Figma 디자인의 페이퍼 아이콘과 유사)
-                const Text(
+                Text(
                   '미아동 791-2882일대',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 32,
+                    fontSize: isWeb ? 32 : 20,
                     fontWeight: FontWeight.w800,
                     fontFamily: 'Wanted Sans',
                     color: Color(0xFF41505D), // Figma의 텍스트 색상
                     height: 1.4, // 줄 간격
                   ),
                 ),
-                const Text(
+                Text(
                   '신속통합 재개발 정비사업조합',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 32,
+                    fontSize: isWeb ? 32 : 20,
                     fontWeight: FontWeight.w500,
                     fontFamily: 'Wanted Sans',
                     color: Color(0xFF41505D), // Figma의 텍스트 색상
