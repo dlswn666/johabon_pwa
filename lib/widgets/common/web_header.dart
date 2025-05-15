@@ -250,10 +250,11 @@ class WebHeaderState extends State<WebHeader> {
                     onPressed: () {
                       Navigator.pushNamed(context, AppRoutes.home);
                     },
-                    child: const Text(
-                      '미아동 791-2882일대\n신속통합 재개발 정비사업',
+                    style: TextButton.styleFrom(overlayColor: Colors.transparent),
+                    child: Text(
+                      menuData[0]['title'] as String,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 24,
                         fontFamily: 'Wanted Sans',
                         fontWeight: FontWeight.w600,
