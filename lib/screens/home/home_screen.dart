@@ -5,6 +5,7 @@ import 'package:johabon_pwa/config/theme.dart';
 import 'package:johabon_pwa/models/banner_model.dart';
 import 'package:johabon_pwa/models/notice_model.dart';
 import 'package:johabon_pwa/providers/auth_provider.dart';
+import 'package:johabon_pwa/utils/responsive_layout.dart';
 import 'package:johabon_pwa/widgets/common/base_screen.dart';
 import 'package:johabon_pwa/widgets/common/custom_card.dart';
 import 'package:johabon_pwa/widgets/home/banner_slider.dart';
@@ -310,8 +311,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final isWeb = kIsWeb || MediaQuery.of(context).size.width > 800;
-    return isWeb ? _buildWebHomeScreen(context) : _buildAppHomeScreen(context);
+    // 화면 너비가 800px보다 크면 넓은 화면용 UI(_buildWebHomeScreen)를,
+    // 그렇지 않으면 좁은 화면용 UI(_buildAppHomeScreen)를 표시합니다.
+    // final bool isWideScreen = MediaQuery.of(context).size.width > 800; // 기존 로직 제거
+    // return isWideScreen ? _buildWebHomeScreen(context) : _buildAppHomeScreen(context); // 기존 로직 제거
+
+    return ResponsiveLayout(
+      mobileBody: _buildAppHomeScreen(context),
+      desktopBody: _buildWebHomeScreen(context),
+      // breakpoint: 800.0, // 기본값이 800이므로 생략 가능
+    );
   }
   
   Widget _buildWebHomeScreen(BuildContext context) {
@@ -438,7 +447,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  '신속통합 재개발 정비사업',
+                  '신속통합 재개발 정비사업 _ web',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 48,
@@ -680,7 +689,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       BannerModel(
         id: '1',
         imageUrl: 'https://via.placeholder.com/800x400/4A90E2/FFFFFF?text=재개발+진행상황+안내',
-        title: '재개발 진행상황 안내',
+        title: '신속통합 재개발 정비사업 _ app',
         description: '현재 진행중인 재개발 상황을 확인하세요.',
         linkType: 'notice',
         linkId: '1',

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:johabon_pwa/config/routes.dart';
 import 'package:johabon_pwa/config/theme.dart';
 import 'package:johabon_pwa/providers/auth_provider.dart';
+import 'package:johabon_pwa/utils/responsive_layout.dart';
 import 'package:johabon_pwa/widgets/common/custom_button.dart';
 import 'package:johabon_pwa/widgets/common/custom_text_field.dart';
 import 'package:johabon_pwa/widgets/common/address_search_dialog.dart';
@@ -601,8 +602,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
-    final isWeb = MediaQuery.of(context).size.width > 800;
-
     return Scaffold(
       body: Stack(
         children: [
@@ -633,8 +632,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               );
             },
           ),
-          // 배경 위 색상 처리 -> 사용자 요청에 따라 수정
-          if(isWeb)
+          // 배경 위 색상 처리 -> ResponsiveLayout.isDesktop 사용
+          if(ResponsiveLayout.isDesktop(context))
           Row(
             children: [
               Expanded(
@@ -659,9 +658,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             ],
           ),
           
-          isWeb 
-              ? _buildWebUI(context) 
-              : _buildAppUI(context),
+          ResponsiveLayout(
+            mobileBody: _buildAppUI(context),
+            desktopBody: _buildWebUI(context),
+          ),
         ],
       ),
     );
