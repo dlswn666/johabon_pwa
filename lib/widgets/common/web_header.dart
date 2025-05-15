@@ -216,6 +216,10 @@ class WebHeaderState extends State<WebHeader> {
   
   @override
   Widget build(BuildContext context) {
+    // 직접 AuthProvider에서 로그인 상태를 구독 (listen: true)
+    final authProvider = Provider.of<AuthProvider>(context);
+    final isLoggedIn = authProvider.isLoggedIn;
+    
     return SizedBox(
       height: headerHeight,
       child: Material(
@@ -313,27 +317,25 @@ class WebHeaderState extends State<WebHeader> {
                 }).toList(),
 
                 const Spacer(),
-
-                if (widget.isLoggedIn) 
-                  TextButton(
-                    onPressed: () {
-                      Provider.of<AuthProvider>(context, listen: false).logout();
-                    },
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppTheme.primaryColor,
-                    ),
-                    child: const Text('로그아웃', textAlign: TextAlign.center, style: TextStyle(fontSize: 28, fontFamily: 'Wanted Sans', fontWeight: FontWeight.w600),),
-                  )
-                else                  
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, AppRoutes.login);
-                    },
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppTheme.primaryColor,
-                    ),
-                    child: const Text('로그인', textAlign: TextAlign.center, style: TextStyle(fontSize: 28, fontFamily: 'Wanted Sans', fontWeight: FontWeight.w600),),
+                
+                // 로그인 상태 조건 없이 항상 로그아웃 버튼 표시 
+                TextButton(
+                  onPressed: () {
+                    print('Logout button pressed!');
+                    // 로그아웃 후 로그인 페이지로 이동하는 콜백 추가
+                    Provider.of<AuthProvider>(context, listen: false).logout().then((_) {
+                      Navigator.pushNamedAndRemoveUntil(
+                        context, 
+                        AppRoutes.login, // home 대신 login 페이지로 이동
+                        (route) => false // 모든 이전 라우트 제거
+                      );
+                    });
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.primaryColor,
                   ),
+                  child: const Text('로그아웃', textAlign: TextAlign.center, style: TextStyle(fontSize: 28, fontFamily: 'Wanted Sans', fontWeight: FontWeight.w600),),
+                ),
               ],
             ),
           ),

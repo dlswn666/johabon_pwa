@@ -116,13 +116,16 @@ class AuthProvider with ChangeNotifier {
 
   // 로그아웃 처리
   Future<void> logout() async {
+    print('[AuthProvider] logout() called'); // 메소드 호출 확인
     _isLoading = true;
-    notifyListeners();
+    notifyListeners(); // 로딩 시작 알림
 
     try {
       // 저장된 사용자 정보 삭제
       final prefs = await SharedPreferences.getInstance();
+      print('[AuthProvider] Removing user_data from SharedPreferences...');
       await prefs.remove('user_data');
+      print('[AuthProvider] Removing token from SharedPreferences...');
       await prefs.remove('token');
 
       _isLoggedIn = false;
@@ -130,14 +133,21 @@ class AuthProvider with ChangeNotifier {
       _isMember = false;
       _currentUser = null;
       _token = null;
+      
+      print('[AuthProvider] User state after logout: isLoggedIn=$_isLoggedIn, currentUser=$_currentUser');
+
     } catch (e) {
       if (kDebugMode) {
-        print('로그아웃 오류: $e');
+        print('[AuthProvider] Logout error: $e');
       }
+    } finally { // try-catch-finally 구조로 변경하여 항상 로딩 해제 및 최종 알림 보장
+      _isLoading = false;
+      print('[AuthProvider] isLoading set to false, calling final notifyListeners()');
+      notifyListeners(); // 최종 상태 (로그아웃 및 로딩 완료) 알림
     }
-
-    _isLoading = false;
-    notifyListeners();
+    
+    // 이 메소드가 끝나면 모든 처리가 완료됨
+    return;
   }
 
   // 회원가입 처리
