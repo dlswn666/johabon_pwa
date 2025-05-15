@@ -12,6 +12,8 @@ import 'package:johabon_pwa/widgets/home/info_card.dart';
 import 'package:johabon_pwa/widgets/home/notice_card.dart';
 import 'package:provider/provider.dart';
 import '../../widgets/common/web_header.dart';
+// import 'package:url_launcher/url_launcher.dart'; // 임시로 주석 처리
+import 'dart:math'; // Random 클래스 사용을 위해 추가
 
 // API 응답을 가정한 샘플 데이터 (HomeScreen 클래스 바깥에 정의)
 const List<Map<String, dynamic>> boardInfoSampleData = [
@@ -38,6 +40,19 @@ class PostItem {
     required this.content,
     required this.author,
     required this.date,
+  });
+}
+
+// PartnerItem 모델 정의 (새로 추가)
+class PartnerItem {
+  final String id;
+  final String introduction;
+  final String name;
+
+  PartnerItem({
+    required this.id,
+    required this.introduction,
+    required this.name,
   });
 }
 
@@ -212,10 +227,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     PostItem(id: 'i7', title: '정보공유방 테스트 7번 (더보기 확인용)', content: '일곱 번째 정보입니다. 목록에는 안 나옵니다.', author: '주민7', date: '2025-04-01'),
   ];
 
+  // 샘플 협력업체 데이터 (새로 추가)
+  final List<PartnerItem> _allPartners = [
+    PartnerItem(id: 'p1', introduction: '협력업체 1 소개', name: '주식회사 감성건축'),
+    PartnerItem(id: 'p2', introduction: '협력업체 2 소개', name: '미래도시설계'),
+    PartnerItem(id: 'p3', introduction: '협력업체 3 소개', name: '안전제일 건설'),
+    PartnerItem(id: 'p4', introduction: '협력업체 4 소개', name: '더조은 법률사무소'),
+    PartnerItem(id: 'p5', introduction: '협력업체 5 소개', name: '우리 세무회계'),
+  ];
+
+  // 화면에 표시될 랜덤 협력업체 리스트 (새로 추가)
+  List<PartnerItem> _displayedPartners = [];
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+
+    // 랜덤 협력업체 3개 선택 (새로 추가)
+    final random = Random();
+    final shuffledPartners = List<PartnerItem>.from(_allPartners)..shuffle(random);
+    _displayedPartners = shuffledPartners.take(3).toList();
   }
 
   @override
@@ -1338,22 +1370,78 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildShortcutsCard(BuildContext context) {
-    // TODO: "바로가기" 섹션 UI 구현 (다음 단계에서 진행)
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16.0),
-        margin: const EdgeInsets.only(right: 8.0), // 오른쪽 카드와의 간격
-        decoration: BoxDecoration(
-          color: Colors.grey[200], // 임시 배경색
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-        child: Column(
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      height: 180.0, // 고정된 높이 추가
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(8.0),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 1,
+            child: _buildShortcutItem(
+              context, 
+              'assets/icons/naver.png', 
+              '네이버카페 \n바로가기',
+              () => _launchURL('https://cafe.naver.com/yourcafe'),
+              const Color(0xFF02C75C), // ARGB 값 수정
+            ),
+          ),
+          const SizedBox(width: 12), // SizedBox의 방향을 width로 수정
+          Expanded(
+            flex: 1,
+            child: _buildShortcutItem(
+              context, 
+              'assets/icons/youtube.png', 
+              '유튜브 채널 \n바로가기',
+              () => _launchURL('https://www.youtube.com/yourchannel'),
+              const Color(0xFF41505D), // ARGB 값 수정
+            ),
+          ),
+          const SizedBox(width: 12), // SizedBox의 방향을 width로 수정
+          Expanded(
+            flex: 1,
+            child: _buildShortcutItem(
+              context, 
+              'assets/icons/kakao.png', 
+              '카카오톡\n단톡방',
+              () => _launchURL('https://open.kakao.com/o/yourchatlink'),
+              const Color(0xFF381E1F), // ARGB 값 수정
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 바로가기 항목을 만드는 헬퍼 위젯 추가
+  Widget _buildShortcutItem(BuildContext context, String iconPath, String label, VoidCallback onTap, Color color) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('바로가기', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Wanted Sans')),
-            SizedBox(height: 16),
-            // 여기에 아이콘 버튼들 추가
-            Text('네이버 카페, 유튜브 등 아이콘 버튼 예정'),
+            Image.asset(
+              iconPath,
+              width: 58,
+              height: 58,
+              errorBuilder: (context, error, stackTrace) {
+                return Icon(Icons.error, size: 24); // 에러 시 기본 아이콘
+              },
+            ),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(fontFamily: 'Wanted Sans', fontSize: 16, color: color, fontWeight: FontWeight.w600),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
       ),
@@ -1361,57 +1449,115 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildPartnersCard(BuildContext context) {
-    // TODO: "협력업체" 섹션 UI 구현 (다음 단계에서 진행)
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16.0),
-        margin: const EdgeInsets.only(left: 8.0), // 왼쪽 카드와의 간격
-        decoration: BoxDecoration(
-          color: Colors.grey[200], // 임시 배경색
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('협력업체', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Wanted Sans')),
-            SizedBox(height: 16),
-            // 여기에 협력업체 목록 추가
-            Text('협력업체 1, 2, 3 목록 예정'),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      height: 180.0, // 고정된 높이 추가
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(8.0),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: _displayedPartners.map((partner) {
+          return _buildPartnerListItem(context, partner);
+        }).toList(),
+      ),
+    );
+  }
+
+  // 협력업체 리스트 아이템을 만드는 헬퍼 위젯 (새로 추가)
+  Widget _buildPartnerListItem(BuildContext context, PartnerItem partner) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0), // 아이템 간 수직 간격
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween, // 양쪽 끝으로 정렬
+        children: [
+          Text(
+            partner.introduction,
+            style: TextStyle(
+              fontFamily: 'Wanted Sans', 
+              fontSize: 18, 
+              color: AppTheme.textPrimaryColor, // 테마 색상 사용 또는 직접 지정
+              fontWeight: FontWeight.w600, // 이미지와 유사한 폰트 두께
+            ),
+          ),
+          Text(
+            partner.name,
+            style: TextStyle(
+              fontFamily: 'Wanted Sans', 
+              fontSize: 16, 
+              color: AppTheme.textPrimaryColor, // 이미지와 유사한 색상
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildBottomQuickLinksSection(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24.0), // horizontal 패딩 제거
+      padding: const EdgeInsets.symmetric(vertical: 24.0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start, // stretch 대신 start로 변경
         children: [
-          _buildShortcutsCard(context),
-          _buildPartnersCard(context),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
+                  child: Text(
+                    '바로가기',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Wanted Sans'),
+                  ),
+                ),
+                _buildShortcutsCard(context),
+              ],
+            ),
+          ),
+          SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
+                  child: Text(
+                    '협력업체',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Wanted Sans'),
+                  ),
+                ),
+                _buildPartnersCard(context),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  // _buildBoardTabView를 재구성하여 상단과 하단으로 나눔
-  Widget _buildBoardTabView(BuildContext context, String boardTitle, List<PostItem> posts) {
-    // 이 메서드는 TabBarView의 children으로 각 탭에 대해 호출됩니다.
-    // 따라서 이 메서드 자체가 "공지사항", "Q&A", "정보공유방" 탭 뷰를 모두 포함하는 것이 아니라,
-    // 각 탭의 내용을 구성합니다. 
-    // 사용자의 요청은 _buildCommunitySection 전체를 위아래로 나누는 것으로 해석하여 수정합니다.
-    // 즉, _buildCommunitySection 내에 TabBar + TabBarView가 있고, 그 아래에 _buildBottomQuickLinksSection이 와야합니다.
+  // URL 실행을 위한 헬퍼 메서드
+  Future<void> _launchURL(String urlString) async {
+    // 기존 코드 대신 간단한 콘솔 로그로 대체
+    print('클릭 이벤트 발생: $urlString');
+    // 나중에 url_launcher 패키지가 추가되면 아래 코드의 주석을 해제하세요
+    /*
+    final Uri url = Uri.parse(urlString);
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      print('Could not launch $urlString');
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(content: Text('연결할 수 없습니다: $urlString')),
+      // );
+    }
+    */
     
-    // 혼란을 피하기 위해, 이 메서드는 원래대로 단일 _buildSingleBoardView를 호출하도록 되돌리고,
-    // _buildCommunitySection을 수정하여 하단 링크 섹션을 추가하는 방향으로 진행합니다.
-
-    // 이전에 _buildBoardTabView가 하던 역할을 _buildSingleBoardView가 하도록 변경했으므로,
-    // _buildCommunitySection의 TabBarView children에서 _buildSingleBoardView를 직접 호출합니다.
-    // 따라서 이 _buildBoardTabView 메서드는 사실상 사용되지 않거나, _buildSingleBoardView의 별칭이 됩니다.
-    
-    // 여기서는 _buildSingleBoardView를 그대로 반환합니다.
-    return _buildSingleBoardView(context, boardTitle, posts);
+    // 사용자에게 URL 클릭 정보를 알려주는 임시 대체 기능
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$urlString 링크를 클릭했습니다.\n(url_launcher 패키지 추가 후 실제 동작합니다)'),
+        duration: Duration(seconds: 2),
+      )
+    );
   }
 } 
