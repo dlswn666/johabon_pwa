@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:johabon_pwa/widgets/common/base_screen.dart';
 
 class InfoSharingScreen extends StatelessWidget {
-  const InfoSharingScreen({Key? key}) : super(key: key);
+  const InfoSharingScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

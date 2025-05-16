@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:johabon_pwa/widgets/common/base_screen.dart';
 
 class CommunityHomeScreen extends StatelessWidget {
-  const CommunityHomeScreen({Key? key}) : super(key: key);
+  const CommunityHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

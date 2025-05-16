@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:johabon_pwa/widgets/common/base_screen.dart';
 
 class BasicInfoScreen extends StatelessWidget {
-  const BasicInfoScreen({Key? key}) : super(key: key);
+  const BasicInfoScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

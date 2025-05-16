@@ -4,7 +4,7 @@ import 'package:johabon_pwa/config/theme.dart';
 import 'package:johabon_pwa/widgets/common/custom_button.dart';
 
 class LandingScreen extends StatelessWidget {
-  const LandingScreen({Key? key}) : super(key: key);
+  const LandingScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

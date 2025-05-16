@@ -3,8 +3,6 @@ import 'package:johabon_pwa/config/routes.dart';
 import 'package:johabon_pwa/config/theme.dart';
 import 'package:johabon_pwa/providers/auth_provider.dart';
 import 'package:johabon_pwa/utils/responsive_layout.dart';
-import 'package:johabon_pwa/widgets/common/custom_button.dart';
-import 'package:johabon_pwa/widgets/common/custom_text_field.dart';
 import 'package:johabon_pwa/widgets/common/address_search_dialog.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:provider/provider.dart';
@@ -12,7 +10,7 @@ import 'package:intl/intl.dart';
 import 'dart:js' as js;
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -207,7 +205,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     // 권리소재지와 상세 주소 결합
     String fullAddress = _registerAddressController.text;
     if (_registerDetailAddressController.text.isNotEmpty) {
-      fullAddress += ", " + _registerDetailAddressController.text;
+      fullAddress += ", ${_registerDetailAddressController.text}";
     }
     
     // TODO: 실제 API에 전달할 때는 fullAddress 값을 사용

@@ -8,9 +8,9 @@ class NoticeCard extends StatelessWidget {
   final NoticeModel notice;
 
   const NoticeCard({
-    Key? key,
+    super.key,
     required this.notice,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

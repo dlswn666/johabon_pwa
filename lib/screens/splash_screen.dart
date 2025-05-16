@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:johabon_pwa/config/routes.dart';
-import 'package:johabon_pwa/config/theme.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

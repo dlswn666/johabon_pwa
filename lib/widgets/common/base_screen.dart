@@ -16,7 +16,7 @@ class BaseScreen extends StatelessWidget {
   final EdgeInsetsGeometry padding;
 
   const BaseScreen({
-    Key? key,
+    super.key,
     required this.title,
     required this.body,
     this.currentIndex = 0,
@@ -27,7 +27,7 @@ class BaseScreen extends StatelessWidget {
     this.floatingActionButton,
     this.backgroundColor = AppTheme.backgroundColor,
     this.padding = const EdgeInsets.all(16),
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

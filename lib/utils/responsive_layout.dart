@@ -6,11 +6,11 @@ class ResponsiveLayout extends StatelessWidget {
   final double breakpoint;
 
   const ResponsiveLayout({
-    Key? key,
+    super.key,
     required this.mobileBody,
     required this.desktopBody,
     this.breakpoint = 800.0, // 기본 분기점 800px
-  }) : super(key: key);
+  });
 
   // 현재 화면이 데스크탑(넓은 화면) 크기인지 확인하는 정적 메서드
   static bool isDesktop(BuildContext context, {double breakpoint = 800.0}) {

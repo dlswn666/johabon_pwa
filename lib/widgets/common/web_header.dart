@@ -16,7 +16,7 @@ class MenuItem {
 class WebHeader extends StatefulWidget {
   final bool isLoggedIn;
   
-  const WebHeader({Key? key, required this.isLoggedIn}) : super(key: key);
+  const WebHeader({super.key, required this.isLoggedIn});
   
   @override
   WebHeaderState createState() => WebHeaderState();
@@ -193,11 +193,11 @@ class WebHeaderState extends State<WebHeader> {
                                   );
                                 },
                               );
-                            }).toList(),
+                            }),
                           ],
                         ),
                       );
-                    }).toList(),
+                    }),
                 ],
               ),
             ),
@@ -206,7 +206,7 @@ class WebHeaderState extends State<WebHeader> {
       ),
     );
     
-    Overlay.of(context)!.insert(_submenuOverlay!);
+    Overlay.of(context).insert(_submenuOverlay!);
   }
   
   void _removeSubmenuOverlay() {
@@ -278,11 +278,11 @@ class WebHeaderState extends State<WebHeader> {
                     child: MouseRegion(
                       key: itemKey, 
                       onEnter: (_) {
-                        bool overlayAlreadyCorrectlyShown = hoveredMenu == id && this.showSubmenu == true && _submenuOverlay != null && hasSubmenu;
+                        bool overlayAlreadyCorrectlyShown = hoveredMenu == id && showSubmenu == true && _submenuOverlay != null && hasSubmenu;
 
                         setState(() {
                           hoveredMenu = id;
-                          this.showSubmenu = hasSubmenu; 
+                          showSubmenu = hasSubmenu; 
                         });
 
                         if (hasSubmenu) {
@@ -314,7 +314,7 @@ class WebHeaderState extends State<WebHeader> {
                       ),
                     ),
                   );
-                }).toList(),
+                }),
 
                 const Spacer(),
                 

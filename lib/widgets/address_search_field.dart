@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:async';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:johabon_pwa/utils/remedi_kopo/index.dart';
 
 // 조건부 import (웹 전용)
@@ -17,14 +14,14 @@ class AddressSearchField extends StatefulWidget {
   final Function(String, String)? onDetailAddressSelected;
 
   const AddressSearchField({
-    Key? key,
+    super.key,
     required this.controller,
     this.label = '주소',
     this.hint = '주소를 검색하려면 클릭하세요',
     this.showDetailAddress = true,
     this.onAddressSelected,
     this.onDetailAddressSelected,
-  }) : super(key: key);
+  });
 
   @override
   _AddressSearchFieldState createState() => _AddressSearchFieldState();

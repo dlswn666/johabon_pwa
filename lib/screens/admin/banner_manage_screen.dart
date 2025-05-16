@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:johabon_pwa/widgets/common/base_screen.dart';
 
 class BannerManageScreen extends StatelessWidget {
-  const BannerManageScreen({Key? key}) : super(key: key);
+  const BannerManageScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

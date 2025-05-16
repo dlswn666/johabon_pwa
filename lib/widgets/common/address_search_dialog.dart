@@ -9,11 +9,11 @@ class AddressSearchDialog extends StatefulWidget {
   final bool showDetailAddress;
 
   const AddressSearchDialog({
-    Key? key,
+    super.key,
     required this.onAddressSelected,
     this.onDetailAddressSelected,
     this.showDetailAddress = true,
-  }) : super(key: key);
+  });
 
   /// 모달 다이얼로그로 주소 검색 화면 표시
   static Future<void> show({

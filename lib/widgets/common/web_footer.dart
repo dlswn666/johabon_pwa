@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:johabon_pwa/config/theme.dart'; // AppTheme 사용을 위해 추가 (필요시)
+// AppTheme 사용을 위해 추가 (필요시)
 
 class WebFooter extends StatelessWidget {
-  const WebFooter({Key? key}) : super(key: key);
+  const WebFooter({super.key});
 
   @override
   Widget build(BuildContext context) {

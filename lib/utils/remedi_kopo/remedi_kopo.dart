@@ -3,7 +3,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'kopo_model.dart';
 
 class RemediKopo extends StatefulWidget {
-  const RemediKopo({Key? key}) : super(key: key);
+  const RemediKopo({super.key});
 
   @override
   State<RemediKopo> createState() => _RemediKopoState();

@@ -21,7 +21,6 @@ import 'package:johabon_pwa/screens/community/share_screen.dart';
 import 'package:johabon_pwa/screens/development/development_info_screen.dart';
 import 'package:johabon_pwa/screens/development/development_process_screen.dart';
 import 'package:johabon_pwa/screens/home/home_screen.dart';
-import 'package:johabon_pwa/screens/landing_screen.dart';
 import 'package:johabon_pwa/screens/splash_screen.dart';
 import 'package:johabon_pwa/screens/user/profile_screen.dart';
 

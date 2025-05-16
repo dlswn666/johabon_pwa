@@ -7,11 +7,11 @@ class LoadingIndicator extends StatelessWidget {
   final String? message;
 
   const LoadingIndicator({
-    Key? key,
+    super.key,
     this.size = 40,
     this.color,
     this.message,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -53,11 +53,11 @@ class FullScreenLoadingIndicator extends StatelessWidget {
   final Color barrierColor;
 
   const FullScreenLoadingIndicator({
-    Key? key,
+    super.key,
     this.message,
     this.isDismissible = false,
     this.barrierColor = Colors.black54,
-  }) : super(key: key);
+  });
 
   static void show(BuildContext context, {String? message}) {
     showDialog(
