@@ -33,6 +33,10 @@ class WebHeaderState extends State<WebHeader> {
   // 헤더 바의 고정 높이
   static const double headerHeight = 120;
   
+  // 호버 상태 관리를 위한 변수 추가
+  bool _headerHovered = false;
+  bool _submenuHovered = false;
+  
   // 메뉴 정의
   final List<Map<String, dynamic>> menuData = [
     {
@@ -100,6 +104,19 @@ class WebHeaderState extends State<WebHeader> {
     super.dispose();
   }
   
+  // 서브메뉴 가시성 업데이트 헬퍼 메서드
+  void _updateSubmenuVisibility() {
+    if (!_headerHovered && !_submenuHovered) {
+      _removeSubmenuOverlay();
+      if (mounted) { // 위젯이 여전히 마운트된 상태인지 확인
+        setState(() {
+          hoveredMenu = null;
+          showSubmenu = false;
+        });
+      }
+    }
+  }
+  
   void _showSubmenuOverlay(BuildContext context) {
     _removeSubmenuOverlay();
     
@@ -137,12 +154,20 @@ class WebHeaderState extends State<WebHeader> {
           elevation: 8,
           type: MaterialType.transparency, 
           child: MouseRegion( 
-            onExit: (_) {
-              setState(() {
-                hoveredMenu = null;
-                showSubmenu = false;
-              });
-              _removeSubmenuOverlay();
+            onEnter: (_) { // 서브메뉴 영역 진입
+              if (mounted) {
+                setState(() {
+                  _submenuHovered = true;
+                });
+              }
+            },
+            onExit: (_) { // 서브메뉴 영역 이탈
+              if (mounted) {
+                setState(() {
+                  _submenuHovered = false;
+                });
+                _updateSubmenuVisibility();
+              }
             },
             child: Container(
               color: Colors.white, 
@@ -225,15 +250,20 @@ class WebHeaderState extends State<WebHeader> {
       child: Material(
         elevation: 2,
         color: Colors.white,
-        child: MouseRegion(
-          onExit: (_) {
-            if (showSubmenu) {
-              return;
-            } else {
+        child: MouseRegion( // 헤더 전체 영역 MouseRegion
+          onEnter: (_) { // 헤더 영역 진입
+            if (mounted) {
               setState(() {
-                hoveredMenu = null;
+                _headerHovered = true;
               });
-              _removeSubmenuOverlay();
+            }
+          },
+          onExit: (_) { // 헤더 영역 이탈
+            if (mounted) {
+              setState(() {
+                _headerHovered = false;
+              });
+              _updateSubmenuVisibility();
             }
           },
           child: Container(
@@ -277,24 +307,24 @@ class WebHeaderState extends State<WebHeader> {
 
                   return Expanded(
                     flex: 1,
-                    child: MouseRegion(
+                    child: MouseRegion( // 각 메뉴 아이템 MouseRegion
                       key: itemKey, 
-                      onEnter: (_) {
-                        bool overlayAlreadyCorrectlyShown = hoveredMenu == id && showSubmenu == true && _submenuOverlay != null && hasSubmenu;
-
-                        setState(() {
-                          hoveredMenu = id;
-                          showSubmenu = hasSubmenu; 
-                        });
+                      onEnter: (_) { // 메뉴 아이템 진입
+                        if (mounted) {
+                          setState(() {
+                            _headerHovered = true; // 헤더 내부에 있으므로 true
+                            hoveredMenu = id;
+                            showSubmenu = hasSubmenu; 
+                          });
+                        }
 
                         if (hasSubmenu) {
-                          if (!overlayAlreadyCorrectlyShown) {
-                            _showSubmenuOverlay(context);
-                          }
+                          _showSubmenuOverlay(context);
                         } else {
-                          _removeSubmenuOverlay();
+                          _removeSubmenuOverlay(); // 서브메뉴 없는 항목 호버 시 기존 오버레이 제거
                         }
                       },
+                      // onExit은 각 메뉴 아이템에서는 제거 (헤더 전체 onExit으로 관리)
                       child: InkWell(
                         onTap: () {
                           Navigator.pushNamed(context, menu['route'] as String);
