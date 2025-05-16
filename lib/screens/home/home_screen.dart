@@ -6,19 +6,16 @@ import 'package:johabon_pwa/models/banner_model.dart';
 import 'package:johabon_pwa/models/notice_model.dart';
 import 'package:johabon_pwa/providers/auth_provider.dart';
 import 'package:johabon_pwa/utils/responsive_layout.dart';
-import 'package:johabon_pwa/widgets/common/base_screen.dart';
+import 'package:johabon_pwa/widgets/layout/layout_template.dart';
 import 'package:johabon_pwa/widgets/common/custom_card.dart';
 import 'package:johabon_pwa/widgets/home/banner_slider.dart';
 import 'package:johabon_pwa/widgets/home/info_card.dart';
 import 'package:johabon_pwa/widgets/home/notice_card.dart';
 import 'package:provider/provider.dart';
-import '../../widgets/common/web_header.dart';
-import '../../widgets/common/web_footer.dart'; // WebFooter 임포트 추가
-// import 'package:url_launcher/url_launcher.dart'; // 임시로 주석 처리
-import 'dart:math'; // Random 클래스 사용을 위해 추가
-import 'dart:async'; // Timer 사용을 위해 추가
+import 'dart:math';
+import 'dart:async';
 import 'package:johabon_pwa/widgets/common/app_drawer.dart';
-import 'package:johabon_pwa/widgets/common/mobile_header.dart'; // MobileHeader 임포트 추가
+import 'package:johabon_pwa/widgets/common/mobile_header.dart';
 
 // API 응답을 가정한 샘플 데이터 (HomeScreen 클래스 바깥에 정의)
 const List<Map<String, dynamic>> boardInfoSampleData = [
@@ -201,7 +198,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Timer? _adSlideTimer; // 광고 자동 슬라이드용 Timer 추가
   int _currentAdPage = 0; // 광고 슬라이더 초기 페이지 (무한 스크롤용)
 
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>(); // Scaffold Key 추가
+  // final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>(); // LayoutTemplate에서 관리하므로 제거
 
   // HTML 태그 제거 유틸리티 함수
   String _stripHtmlTags(String htmlText) {
@@ -321,58 +318,422 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    // 화면 너비가 800px보다 크면 넓은 화면용 UI(_buildWebHomeScreen)를,
-    // 그렇지 않으면 좁은 화면용 UI(_buildAppHomeScreen)를 표시합니다.
-    // final bool isWideScreen = MediaQuery.of(context).size.width > 800; // 기존 로직 제거
-    // return isWideScreen ? _buildWebHomeScreen(context) : _buildAppHomeScreen(context); // 기존 로직 제거
+    // 홈 화면의 본문 내용을 정의
+    Widget homeBody = ResponsiveLayout(
+      mobileBody: _buildAppHomeScreenContent(context),
+      desktopBody: _buildWebHomeScreenContent(context),
+    );
 
-    return ResponsiveLayout(
-      mobileBody: _buildAppHomeScreen(context),
-      desktopBody: _buildWebHomeScreen(context),
-      // breakpoint: 800.0, // 기본값이 800이므로 생략 가능
+    return LayoutTemplate(
+      body: homeBody,
+      title: '미아동 791-2882일대 신속통합 재개발 정비사업', // 모바일 타이틀
+      currentIndex: 0, // 홈 화면의 BottomNavBar 인덱스
+      // 웹에서는 LayoutTemplate 내부에서 WebHeader/WebFooter를 자동으로 처리
+      // 모바일에서는 LayoutTemplate 내부에서 MobileHeader/AppDrawer/BottomNavBar를 자동으로 처리
     );
   }
   
-  Widget _buildWebHomeScreen(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-    final isLoggedIn = authProvider.isLoggedIn;
-    
-    return Scaffold(
-      body: Column(
+  // 웹 홈스크린 UI 빌드
+  Widget _buildWebHomeScreenContent(BuildContext context) {
+    // WebHeader와 WebFooter는 LayoutTemplate에서 처리하므로 여기서는 순수 콘텐츠만 구성
+    return Column(
+      children: [
+        _buildMainBanner(),
+        _buildCommunitySection(context),
+        _buildCombinedLinksAndPartnersSection(context),
+        _buildAdSliderSection(context),
+      ],
+    );
+  }
+
+  // 모바일 홈스크린 UI 빌드
+  Widget _buildAppHomeScreenContent(BuildContext context) {
+    // MobileHeader, AppDrawer, BottomNavBar는 LayoutTemplate에서 처리하므로 여기서는 순수 콘텐츠만 구성
+    return SingleChildScrollView(
+      child: Column(
         children: [
-          WebHeader(isLoggedIn: isLoggedIn),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  _buildMainBanner(),
-                  _buildCommunitySection(context),
-                  _buildCombinedLinksAndPartnersSection(context),
-                  _buildAdSliderSection(context),
-                  const WebFooter(),
-                ],
+          // 2. 메인 배너 영역
+          Stack(
+            children: [
+              Image.network(
+                'https://via.placeholder.com/800x400/4A90E2/FFFFFF?text=재개발+진행상황+안내',
+                width: double.infinity,
+                height: 220,
+                fit: BoxFit.cover,
               ),
+              Container(
+                width: double.infinity,
+                height: 220,
+                color: const Color.fromRGBO(35, 60, 34, 0.6),
+              ),
+              Container(
+                width: double.infinity,
+                height: 220,
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Text(
+                      '조합원들의 방문을 환영합니다',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                        fontFamily: 'Wanted Sans',
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      '작전현대아파트구역\n주택재개발정비사업조합',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        fontFamily: 'Wanted Sans',
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(
+              children: [
+                Container(
+                  height: 40,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: Color(0xFF70DFAF),
+                                width: 4.0,
+                              ),
+                            ),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              '공지사항',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.textPrimaryColor,
+                                fontFamily: 'Wanted Sans',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: const Center(
+                          child: Text(
+                            'Q&A',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.textPrimaryColor,
+                              fontFamily: 'Wanted Sans',
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: const Center(
+                          child: Text(
+                            '정보공유방',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.textPrimaryColor,
+                              fontFamily: 'Wanted Sans',
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(16.0),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9F9F9),
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            sampleNoticePosts[0].title,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textPrimaryColor,
+                              fontFamily: 'Wanted Sans',
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _stripHtmlTags(sampleNoticePosts[0].content).length > 50
+                                ? _stripHtmlTags(sampleNoticePosts[0].content).substring(0, 50) + '...'
+                                : _stripHtmlTags(sampleNoticePosts[0].content),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: AppTheme.textPrimaryColor,
+                              fontFamily: 'Wanted Sans',
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                sampleNoticePosts[0].author,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: AppTheme.textPrimaryColor,
+                                  fontFamily: 'Wanted Sans',
+                                ),
+                              ),
+                              Text(
+                                sampleNoticePosts[0].date,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: AppTheme.textPrimaryColor,
+                                  fontFamily: 'Wanted Sans',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 24, thickness: 1),
+                      ...sampleNoticePosts.sublist(1, 4).map((post) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                post.title,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: AppTheme.textPrimaryColor,
+                                  fontFamily: 'Wanted Sans',
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Text(
+                              post.author,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: AppTheme.textPrimaryColor,
+                                fontFamily: 'Wanted Sans',
+                              ),
+                            ),
+                          ],
+                        ),
+                      )),
+                      Align(
+                        alignment: Alignment.center,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 12.0),
+                          child: TextButton(
+                            onPressed: () {
+                              Navigator.pushNamed(context, AppRoutes.notice);
+                            },
+                            child: const Text(
+                              '+ 더보기',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: AppTheme.primaryColor,
+                                fontWeight: FontWeight.w700,
+                                fontFamily: 'Wanted Sans',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  height: 40,
+                  alignment: Alignment.centerLeft,
+                  child: const Text(
+                    '협력업체',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimaryColor,
+                      fontFamily: 'Wanted Sans',
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(16.0),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9F9F9),
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  child: Column(
+                    children: _displayedPartners.map((partner) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            partner.introduction,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textPrimaryColor,
+                              fontFamily: 'Wanted Sans',
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            partner.name,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: AppTheme.textPrimaryColor,
+                              fontFamily: 'Wanted Sans',
+                            ),
+                          ),
+                          if (partner != _displayedPartners.last)
+                            const Divider(height: 24, thickness: 1),
+                        ],
+                      ),
+                    )).toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: InformationPanel(boardDetails: boardInfoSampleData[0]),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  height: 40,
+                  alignment: Alignment.centerLeft,
+                  child: const Text(
+                    '바로가기',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimaryColor,
+                      fontFamily: 'Wanted Sans',
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(16.0),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9F9F9),
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildQuickLinkItem('assets/icons/naver.png', '네이버카페\n바로가기', () => _launchURL('https://cafe.naver.com/yourcafe')),
+                      _buildQuickLinkItem('assets/icons/youtube.png', '유튜브 채널\n바로가기', () => _launchURL('https://www.youtube.com/yourchannel')),
+                      _buildQuickLinkItem('assets/icons/kakao.png', '카카오톡\n단톡방', () => _launchURL('https://open.kakao.com/o/yourchatlink')),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 180,
+            child: PageView.builder(
+              controller: _adPageController,
+              itemBuilder: (context, pageIndex) {
+                final itemIndex = pageIndex % _adBanners.length;
+                return Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: Image.network(
+                          _adBanners[itemIndex].imageUrl ?? 'https://via.placeholder.com/320x100',
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        color: const Color(0xFFF9F9F9),
+                        child: Center(
+                          child: Text(
+                            _adBanners[itemIndex].altText,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textPrimaryColor,
+                              fontFamily: 'Wanted Sans',
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              onPageChanged: (page) {
+                _currentAdPage = page;
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
         ],
       ),
     );
   }
-  
+
+  // 웹 홈스크린 UI 빌드
   Widget _buildCommunitySection(BuildContext context) {
     return Container( 
       color: Colors.white, 
-      padding: const EdgeInsets.only(top: 40.0), // 상단 패딩 40
+      padding: const EdgeInsets.only(top: 40.0, left: 40.0, right: 40.0), // 좌우 패딩 추가
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            flex: 1, // 정보 패널 flex: 1
+            flex: 3, // 정보 패널 flex 조정 (기존 1 -> 3)
             child: InformationPanel(boardDetails: boardInfoSampleData[0]),
           ),
           const SizedBox(width: 30), // 간격 30
           Expanded(
-            flex: 4, // 탭/게시판 flex: 4
+            flex: 7, // 탭/게시판 flex 조정 (기존 4 -> 7)
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -404,7 +765,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
                 const SizedBox(height: 16), // TabBar와 TabBarView 사이 간격
                 SizedBox( // TabBarView 컨테이너
-                  height: 250, // 임시 높이, 실제 내용에 따라 조절 필요
+                  height: 300, // 높이 증가 (기존 250 -> 300)
                   child: TabBarView(
                     controller: _tabController,
                     children: [
@@ -543,681 +904,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
   
   Widget _buildFooter() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 48),
-      color: Colors.grey.shade900,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '재개발조합',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Wanted Sans',
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  '작전현대아파트구역 주택재개발정비사업조합',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Wanted Sans',
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '© 2023 작전현대아파트구역 주택재개발정비사업조합. All rights reserved.',
-                  style: TextStyle(
-                    color: Colors.grey.shade400,
-                    fontSize: 14,
-                    fontFamily: 'Wanted Sans',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '주소',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Wanted Sans',
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '인천광역시 계양구 작전동 123-45',
-                  style: TextStyle(
-                    color: Colors.grey.shade400,
-                    fontSize: 14,
-                    height: 1.5,
-                    fontFamily: 'Wanted Sans',
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  '연락처',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Wanted Sans',
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '전화: 032-123-4567\n이메일: info@jakhyun.org',
-                  style: TextStyle(
-                    color: Colors.grey.shade400,
-                    fontSize: 14,
-                    height: 1.5,
-                    fontFamily: 'Wanted Sans',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '약관 및 정책',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Wanted Sans',
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: () {},
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.grey.shade400,
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(0, 30),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    alignment: Alignment.centerLeft,
-                  ),
-                  child: const Text('이용약관', style: TextStyle(fontFamily: 'Wanted Sans')),
-                ),
-                TextButton(
-                  onPressed: () {},
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.grey.shade400,
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(0, 30),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    alignment: Alignment.centerLeft,
-                  ),
-                  child: const Text('개인정보처리방침', style: TextStyle(fontFamily: 'Wanted Sans')),
-                ),
-                TextButton(
-                  onPressed: () {},
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.grey.shade400,
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(0, 30),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    alignment: Alignment.centerLeft,
-                  ),
-                  child: const Text('이메일무단수집거부', style: TextStyle(fontFamily: 'Wanted Sans')),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+    // WebFooter는 LayoutTemplate에서 처리하므로 제거 가능
+    return Container();
   }
 
-  Widget _buildAppHomeScreen(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-    final isLoggedIn = authProvider.isLoggedIn;
-    final isMember = authProvider.isMember;
-
-    // 현재 표시할 게시판 이름 (지역 변수로 정의)
-    const String currentTab = '공지사항';
-
-    return Scaffold(
-      key: _scaffoldKey, // Scaffold Key 할당
-      appBar: MobileHeader(scaffoldKey: _scaffoldKey), // AppBar에 MobileHeader 사용
-      endDrawer: AppDrawer(), // AppDrawer 추가
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // 1. 상단 헤더 영역 -> MobileHeader로 대체
-            // Container(
-            //   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-            //   color: Colors.white,
-            //   child: Row(
-            //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            //     children: [
-            //       const Expanded(
-            //         child: Text(
-            //           '미아동 791-2882일대 신속통합 재개발 정비사업',
-            //           style: TextStyle(
-            //             fontSize: 16,
-            //             fontWeight: FontWeight.w600,
-            //             color: AppTheme.textPrimaryColor,
-            //             fontFamily: 'Wanted Sans',
-            //           ),
-            //           overflow: TextOverflow.ellipsis,
-            //         ),
-            //       ),
-            //       IconButton(
-            //         icon: const Icon(Icons.menu, color: AppTheme.textPrimaryColor),
-            //         onPressed: () {
-            //           // 햄버거 메뉴 동작
-            //           _scaffoldKey.currentState?.openEndDrawer();
-            //         },
-            //         padding: EdgeInsets.zero,
-            //         constraints: const BoxConstraints(),
-            //       ),
-            //     ],
-            //   ),
-            // ),
-            
-            // 2. 메인 배너 영역
-            Stack(
-              children: [
-                // 배경 이미지
-                Image.network(
-                  'https://via.placeholder.com/800x400/4A90E2/FFFFFF?text=재개발+진행상황+안내',
-                  width: double.infinity,
-                  height: 220,
-                  fit: BoxFit.cover,
-                ),
-                // 반투명 오버레이
-                Container(
-                  width: double.infinity,
-                  height: 220,
-                  color: const Color.fromRGBO(35, 60, 34, 0.6), // rgba(35, 60, 34, 0.6)
-                ),
-                // 환영 메시지
-                Container(
-                  width: double.infinity,
-                  height: 220,
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Text(
-                        '조합원들의 방문을 환영합니다',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white,
-                          fontFamily: 'Wanted Sans',
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        '작전현대아파트구역\n주택재개발정비사업조합',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                          fontFamily: 'Wanted Sans',
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // 3. 공지사항 탭 영역
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                children: [
-                  // 탭 메뉴
-                  Container(
-                    height: 40,
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(
-                                  color: Color(0xFF70DFAF), // 초록색 밑줄
-                                  width: 4.0,
-                                ),
-                              ),
-                            ),
-                            child: const Center(
-                              child: Text(
-                                '공지사항',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppTheme.textPrimaryColor,
-                                  fontFamily: 'Wanted Sans',
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: const Center(
-                            child: Text(
-                              'Q&A',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.textPrimaryColor,
-                                fontFamily: 'Wanted Sans',
-                              ),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: const Center(
-                            child: Text(
-                              '정보공유방',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.textPrimaryColor,
-                                fontFamily: 'Wanted Sans',
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // 글 목록
-                  Container(
-                    padding: const EdgeInsets.all(16.0),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF9F9F9),
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 첫 번째 공지 (상세 내용 표시)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              sampleNoticePosts[0].title,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.textPrimaryColor,
-                                fontFamily: 'Wanted Sans',
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _stripHtmlTags(sampleNoticePosts[0].content).length > 50
-                                  ? _stripHtmlTags(sampleNoticePosts[0].content).substring(0, 50) + '...'
-                                  : _stripHtmlTags(sampleNoticePosts[0].content),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: AppTheme.textPrimaryColor,
-                                fontFamily: 'Wanted Sans',
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  sampleNoticePosts[0].author,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: AppTheme.textPrimaryColor,
-                                    fontFamily: 'Wanted Sans',
-                                  ),
-                                ),
-                                Text(
-                                  sampleNoticePosts[0].date,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: AppTheme.textPrimaryColor,
-                                    fontFamily: 'Wanted Sans',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        const Divider(height: 24, thickness: 1),
-                        // 나머지 공지 (제목만 표시)
-                        ...sampleNoticePosts.sublist(1, 4).map((post) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  post.title,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: AppTheme.textPrimaryColor,
-                                    fontFamily: 'Wanted Sans',
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Text(
-                                post.author,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: AppTheme.textPrimaryColor,
-                                  fontFamily: 'Wanted Sans',
-                                ),
-                              ),
-                            ],
-                          ),
-                        )),
-                        // 더보기 버튼
-                        Align(
-                          alignment: Alignment.center,
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 12.0),
-                            child: TextButton(
-                              onPressed: () {
-                                // 현재는 공지사항 탭만 구현되어 있으므로 Notice 페이지로 이동
-                                Navigator.pushNamed(context, AppRoutes.notice);
-                              },
-                              child: const Text(
-                                '+ 더보기',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: AppTheme.primaryColor,
-                                  fontWeight: FontWeight.w700,
-                                  fontFamily: 'Wanted Sans',
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // 4. 협력업체 소개 영역
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    height: 40,
-                    alignment: Alignment.centerLeft,
-                    child: const Text(
-                      '협력업체',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.textPrimaryColor,
-                        fontFamily: 'Wanted Sans',
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(16.0),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF9F9F9),
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                    child: Column(
-                      children: _displayedPartners.map((partner) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              partner.introduction,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.textPrimaryColor,
-                                fontFamily: 'Wanted Sans',
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              partner.name,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: AppTheme.textPrimaryColor,
-                                fontFamily: 'Wanted Sans',
-                              ),
-                            ),
-                            if (partner != _displayedPartners.last)
-                              const Divider(height: 24, thickness: 1),
-                          ],
-                        ),
-                      )).toList(),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // 5. 정보 카드 영역
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: InformationPanel(boardDetails: boardInfoSampleData[0]),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // 6. 바로가기 영역
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    height: 40,
-                    alignment: Alignment.centerLeft,
-                    child: const Text(
-                      '바로가기',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.textPrimaryColor,
-                        fontFamily: 'Wanted Sans',
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(16.0),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF9F9F9),
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildQuickLinkItem('assets/icons/naver.png', '네이버카페\n바로가기', () => _launchURL('https://cafe.naver.com/yourcafe')),
-                        _buildQuickLinkItem('assets/icons/youtube.png', '유튜브 채널\n바로가기', () => _launchURL('https://www.youtube.com/yourchannel')),
-                        _buildQuickLinkItem('assets/icons/kakao.png', '카카오톡\n단톡방', () => _launchURL('https://open.kakao.com/o/yourchatlink')),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // 7. 홍보 배너 슬라이더
-            SizedBox(
-              height: 180,
-              child: PageView.builder(
-                controller: _adPageController,
-                itemBuilder: (context, pageIndex) {
-                  final itemIndex = pageIndex % _adBanners.length;
-                  return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: Image.network(
-                            _adBanners[itemIndex].imageUrl ?? 'https://via.placeholder.com/320x100',
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          color: const Color(0xFFF9F9F9),
-                          child: Center(
-                            child: Text(
-                              _adBanners[itemIndex].altText,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.textPrimaryColor,
-                                fontFamily: 'Wanted Sans',
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                onPageChanged: (page) {
-                  _currentAdPage = page;
-                },
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // 8. 푸터 영역
-            Container(
-              padding: const EdgeInsets.all(16.0),
-              color: const Color(0xFFF2F2F2),
-              child: Column(
-                children: [
-                  const Text(
-                    '작전현대아파트구역\n주택재개발정비사업조합',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFFAAAAAA),
-                      fontFamily: 'Wanted Sans',
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  Column(
-                    children: const [
-                      Text(
-                        '[11017] 경기도 연천군 연천로 220',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF8C8C8C),
-                          fontFamily: 'Wanted Sans',
-                        ),
-                      ),
-                      Text(
-                        '대표전화 : 032-221-5236',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF8C8C8C),
-                          fontFamily: 'Wanted Sans',
-                        ),
-                      ),
-                      Text(
-                        '사업자등록번호 : 66025-25-02142',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF8C8C8C),
-                          fontFamily: 'Wanted Sans',
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      TextButton(
-                        onPressed: () {},
-                        child: const Text(
-                          '개인정보처리방침',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF8C8C8C),
-                            fontFamily: 'Wanted Sans',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 20),
-                      TextButton(
-                        onPressed: () {},
-                        child: const Text(
-                          '저작권 정책',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF8C8C8C),
-                            fontFamily: 'Wanted Sans',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'copyright 2025 logo all rights reserved.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF8C8C8C),
-                      fontFamily: 'Wanted Sans',
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-  
   // 빠른 링크 아이템 위젯 생성 메서드 추가
   Widget _buildQuickLinkItem(String iconPath, String label, VoidCallback onTap) {
     return GestureDetector(
@@ -1261,20 +951,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // URL 실행을 위한 헬퍼 메서드
   Future<void> _launchURL(String urlString) async {
-    // 기존 코드 대신 간단한 콘솔 로그로 대체
     print('클릭 이벤트 발생: $urlString');
-    // 나중에 url_launcher 패키지가 추가되면 아래 코드의 주석을 해제하세요
-    /*
-    final Uri url = Uri.parse(urlString);
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      print('Could not launch $urlString');
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   SnackBar(content: Text('연결할 수 없습니다: $urlString')),
-      // );
-    }
-    */
-    
-    // 사용자에게 URL 클릭 정보를 알려주는 임시 대체 기능
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('$urlString 링크를 클릭했습니다.\n(url_launcher 패키지 추가 후 실제 동작합니다)'),
@@ -1286,23 +963,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // 광고 슬라이더 섹션 위젯 (새로 추가)
   Widget _buildAdSliderSection(BuildContext context) {
     if (_adBanners.isEmpty) {
-      return const SizedBox.shrink(); // 광고 데이터 없으면 아무것도 표시 안 함
+      return const SizedBox.shrink();
     }
     return Container(
-      height: 230, // 슬라이더 전체 높이 (아이템 높이 + 상하 패딩 고려)
+      height: 230,
       padding: const EdgeInsets.symmetric(vertical: 15.0),
-      // color: Colors.blueGrey[50], // 섹션 배경색 (디버깅 또는 디자인용)
       child: PageView.builder(
         controller: _adPageController,
-        // itemCount: _adBanners.length, // 무한 스크롤을 위해 주석 처리 또는 매우 큰 값
         itemBuilder: (context, pageIndex) {
           final itemIndex = pageIndex % _adBanners.length;
           return _buildAdBannerItem(context, _adBanners[itemIndex]);
         },
         onPageChanged: (page) {
-          // 사용자가 직접 스크롤 시 _currentAdPage 업데이트 (선택적이지만 권장)
-          // _currentAdPage = page; 
-          // 무한 스크롤 시에는 이부분이 자동 스크롤과 충돌할 수 있어 타이머 재시작 로직이 필요할 수 있음
         },
       ),
     );
@@ -1314,19 +986,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       return const Center(child: Text('게시물이 없습니다.', style: TextStyle(fontFamily: 'Wanted Sans')));
     }
 
-    // 첫 번째 게시물
     final firstPost = posts.first;
-    // 나머지 게시물 (최대 5개)
     final remainingPosts = posts.skip(1).take(3).toList();
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 왼쪽: 첫 번째 게시물 상세
         Expanded(
-          flex: 2, // 너비 비율 조정 (필요에 따라 변경)
+          flex: 2,
           child: Padding(
-            padding: const EdgeInsets.only(right: 24.0, bottom: 16.0), // 오른쪽 여백 및 하단 여백 추가
+            padding: const EdgeInsets.only(right: 24.0, bottom: 16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1350,7 +1019,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     color: Colors.grey[700],
                     height: 1.6,
                   ),
-                  maxLines: 5, // 내용 미리보기 줄 수 제한
+                  maxLines: 5,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 12),
@@ -1366,7 +1035,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '|', // 구분자
+                      '|',
                        style: TextStyle(
                         fontSize: 13,
                         fontFamily: 'Wanted Sans',
@@ -1388,15 +1057,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ),
         ),
-        // 오른쪽: 나머지 게시물 목록 (최대 3개)
         Expanded(
-          flex: 3, // 너비 비율 조정
+          flex: 3,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ListView.separated(
                 shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(), // Row 내부 ListView 스크롤 방지
+                physics: const NeverScrollableScrollPhysics(),
                 itemCount: remainingPosts.length,
                 separatorBuilder: (context, index) => const Divider(height: 1),
                 itemBuilder: (context, index) {
@@ -1435,7 +1103,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ],
                     ),
                     onTap: () {
-                      // 게시물 상세 화면으로 이동 (구현 필요)
                       print('Navigate to post: ${post.id}');
                     },
                   );
@@ -1447,8 +1114,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         Expanded(
           flex: 1,
           child: Container(
-            alignment: Alignment.center, // 텍스트 버튼 중앙정렬 추가
-            padding: const EdgeInsets.only(bottom: 50.0), // 하단 패딩 50px 추가
+            alignment: Alignment.center,
+            padding: const EdgeInsets.only(bottom: 50.0),
             child: TextButton(
               onPressed: () {
                 if (boardTitle == '공지사항') {
@@ -1456,7 +1123,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 } else if (boardTitle == 'Q&A') {
                   Navigator.pushNamed(context, AppRoutes.qna);
                 } else {
-                  // 정보공유방 라우트가 정의되지 않은 경우 임시 처리
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('정보공유방 페이지는 아직 준비 중입니다.'))
                   );
@@ -1482,20 +1148,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildCombinedLinksAndPartnersSection(BuildContext context) {
     return Container(
       color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 40.0), // 좌우 패딩 추가
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            flex: 2,
-            child: Container(),
-          ),
-          Expanded(
-            flex: 3, // _buildCommunitySection의 InformationPanel과 동일한 flex
+            flex: 3, // flex 조정 (기존 2 -> 3)
             child: _buildQuickLinksWebSection(context),
           ),
-          const SizedBox(width: 30), // 동일한 간격
+          const SizedBox(width: 30),
           Expanded(
-            flex: 5, // _buildCommunitySection의 탭/게시판 영역과 동일한 flex
+            flex: 7, // flex 조정 (기존 3, 5 -> 7)
             child: _buildPartnersWebSection(context),
           ),
         ],
@@ -1508,7 +1171,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 제목: 바로가기
         const Padding (
           padding: EdgeInsets.symmetric(vertical: 16.0),
           child: Text(
@@ -1521,7 +1183,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ),
         ),
-        // 바로가기 링크 컨테이너
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -1582,30 +1243,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             itemBuilder: (context, index) {
               final partner = _displayedPartners[index];
               return ListTile(
-                contentPadding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 0), // 공지사항 목록과 유사하게
+                contentPadding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 0),
                 title: Text(
-                  partner.name, // 업체명을 주된 정보로 표시
+                  partner.name,
                   style: const TextStyle(
                     fontSize: 15,
                     fontFamily: 'Wanted Sans',
                     color: AppTheme.textPrimaryColor,
-                    fontWeight: FontWeight.w500, // 필요시 제목 강조
+                    fontWeight: FontWeight.w500,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
-                subtitle: Text( // 소개는 부가 정보로 간략히
+                subtitle: Text(
                   partner.introduction,
                   style: TextStyle(
                     fontSize: 13,
                     fontFamily: 'Wanted Sans',
                     color: AppTheme.textPrimaryColor,
                   ),
-                  maxLines: 2, // 소개 내용을 두 줄까지 표시
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                // 아이콘은 제거 요청에 따라 추가하지 않음
                 onTap: () {
-                  // 향후 협력업체 상세 정보 페이지 등으로 이동 가능
                   print('Tapped partner: ${partner.name}');
                 },
               );
@@ -1677,7 +1336,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               : null,
           child: Stack(
             children: [
-              // 배너 이미지
               SizedBox(
                 width: double.infinity,
                 height: 200,
@@ -1707,7 +1365,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         ),
                       ),
               ),
-              // 하단 설명 텍스트
               Positioned(
                 bottom: 0,
                 left: 0,
@@ -1731,7 +1388,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ),
               ),
-              // 링크가 있는 경우 우측 상단에 표시
               if (banner.linkUrl != null)
                 Positioned(
                   top: 8,
