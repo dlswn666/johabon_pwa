@@ -17,6 +17,7 @@ import '../../widgets/common/web_footer.dart'; // WebFooter 임포트 추가
 // import 'package:url_launcher/url_launcher.dart'; // 임시로 주석 처리
 import 'dart:math'; // Random 클래스 사용을 위해 추가
 import 'dart:async'; // Timer 사용을 위해 추가
+import 'package:johabon_pwa/widgets/common/app_drawer.dart';
 
 // API 응답을 가정한 샘플 데이터 (HomeScreen 클래스 바깥에 정의)
 const List<Map<String, dynamic>> boardInfoSampleData = [
@@ -198,6 +199,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   PageController? _adPageController; // 광고 슬라이더용 PageController 추가
   Timer? _adSlideTimer; // 광고 자동 슬라이드용 Timer 추가
   int _currentAdPage = 0; // 광고 슬라이더 초기 페이지 (무한 스크롤용)
+
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>(); // Scaffold Key 추가
 
   final List<Map<String, dynamic>> boardItems = [
     {
@@ -689,6 +692,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     const String currentTab = '공지사항';
 
     return Scaffold(
+      key: _scaffoldKey, // Scaffold Key 할당
+      endDrawer: AppDrawer(), // AppDrawer 추가
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -715,7 +720,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     icon: const Icon(Icons.menu, color: AppTheme.textPrimaryColor),
                     onPressed: () {
                       // 햄버거 메뉴 동작
-                      Scaffold.of(context).openEndDrawer();
+                      _scaffoldKey.currentState?.openEndDrawer();
                     },
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
