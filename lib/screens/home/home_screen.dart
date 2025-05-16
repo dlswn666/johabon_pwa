@@ -202,6 +202,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>(); // Scaffold Key 추가
 
+  // HTML 태그 제거 유틸리티 함수
+  String _stripHtmlTags(String htmlText) {
+    RegExp exp = RegExp(r"<[^>]*>", multiLine: true, caseSensitive: true);
+    return htmlText.replaceAll(exp, '');
+  }
+
   final List<Map<String, dynamic>> boardItems = [
     {
       'category': '공지사항',
@@ -340,8 +346,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 children: [
                   _buildMainBanner(),
                   _buildCommunitySection(context),
-                  _buildAdSliderSection(context), // 광고 슬라이더 섹션 추가
-                  const WebFooter(), // _buildFooter() 대신 WebFooter() 사용
+                  _buildCombinedLinksAndPartnersSection(context),
+                  _buildAdSliderSection(context),
+                  const WebFooter(),
                 ],
               ),
             ),
@@ -352,26 +359,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
   
   Widget _buildCommunitySection(BuildContext context) {
-    return Container( // 전체 커뮤니티 섹션의 패딩과 배경 등을 관리
+    return Container( 
       color: Colors.white, 
-      padding: const EdgeInsets.symmetric(vertical: 40.0, horizontal: 40.0), // 섹션 전체 좌우 패딩
+      padding: const EdgeInsets.only(top: 40.0), // 상단 패딩 40
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 왼쪽: Information Panel
           Expanded(
-            flex: 1, 
-            child: InformationPanel(boardDetails: boardInfoSampleData[0]), // 사용자의 boardDetails 수정 반영
+            flex: 1, // 정보 패널 flex: 1
+            child: InformationPanel(boardDetails: boardInfoSampleData[0]),
           ),
-          const SizedBox(width: 30), // InformationPanel과 오른쪽 컨텐츠 사이 간격 (사용자 수정 반영)
-
-          // 오른쪽: 탭 및 게시글 내용 + 하단 바로가기/협력업체 영역
+          const SizedBox(width: 30), // 간격 30
           Expanded(
-            flex: 4, // 오른쪽 영역의 flex 값 (사용자 수정 반영)
+            flex: 4, // 탭/게시판 flex: 4
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 상단 탭 영역
                 SizedBox(
                   height: 48,
                   child: TabBar(
@@ -400,7 +403,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
                 const SizedBox(height: 16), // TabBar와 TabBarView 사이 간격
                 SizedBox( // TabBarView 컨테이너
-                  height: 300, // 임시 높이, 실제 내용에 따라 조절 필요
+                  height: 250, // 임시 높이, 실제 내용에 따라 조절 필요
                   child: TabBarView(
                     controller: _tabController,
                     children: [
@@ -410,8 +413,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ],
                   ),
                 ),
-                // 여기에 _buildBottomQuickLinksSection를 추가
-                _buildBottomQuickLinksSection(context), 
               ],
             ),
           ),
@@ -870,9 +871,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              sampleNoticePosts[0].content.length > 50
-                                  ? sampleNoticePosts[0].content.substring(0, 50) + '...'
-                                  : sampleNoticePosts[0].content,
+                              _stripHtmlTags(sampleNoticePosts[0].content).length > 50
+                                  ? _stripHtmlTags(sampleNoticePosts[0].content).substring(0, 50) + '...'
+                                  : _stripHtmlTags(sampleNoticePosts[0].content),
                               style: const TextStyle(
                                 fontSize: 14,
                                 color: AppTheme.textPrimaryColor,
@@ -1307,208 +1308,316 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // 게시판 탭 콘텐츠를 구성하는 메서드
   Widget _buildSingleBoardView(BuildContext context, String boardTitle, List<PostItem> posts) {
-    return ListView.separated(
-      padding: EdgeInsets.zero,
-      itemCount: posts.length > 6 ? 7 : posts.length, // 최대 6개 항목 + 더보기 버튼
-      separatorBuilder: (context, index) {
-        // 마지막 항목 다음에는 구분선 없음
-        if (index == 5 || index == posts.length - 1) return SizedBox.shrink();
-        return Divider(height: 1);
-      },
-      itemBuilder: (context, index) {
-        // 마지막 항목이면 "더보기" 버튼 표시
-        if (index == 6 || index == posts.length) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12.0),
-              child: TextButton(
-                onPressed: () {
-                  // 해당 게시판으로 이동 (이곳에서는 지역 변수로 사용 가능)
-                  String currentBoard = boardTitle;
-                  if (currentBoard == '공지사항') {
-                    Navigator.pushNamed(context, AppRoutes.notice);
-                  } else if (currentBoard == 'Q&A') {
-                    Navigator.pushNamed(context, AppRoutes.qna);
-                  } else {
-                    // 정보공유방 라우트가 정의되지 않은 경우 임시 처리
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('정보공유방 페이지는 아직 준비 중입니다.'))
-                    );
-                  }
-                },
-                child: const Text(
-                  '+ 더보기',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: AppTheme.primaryColor,
-                    fontWeight: FontWeight.w700,
+    if (posts.isEmpty) {
+      return const Center(child: Text('게시물이 없습니다.', style: TextStyle(fontFamily: 'Wanted Sans')));
+    }
+
+    // 첫 번째 게시물
+    final firstPost = posts.first;
+    // 나머지 게시물 (최대 5개)
+    final remainingPosts = posts.skip(1).take(3).toList();
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 왼쪽: 첫 번째 게시물 상세
+        Expanded(
+          flex: 2, // 너비 비율 조정 (필요에 따라 변경)
+          child: Padding(
+            padding: const EdgeInsets.only(right: 24.0, bottom: 16.0), // 오른쪽 여백 및 하단 여백 추가
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  firstPost.title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                     fontFamily: 'Wanted Sans',
+                    color: AppTheme.textPrimaryColor,
                   ),
                 ),
-              ),
-            ),
-          );
-        }
-
-        // 일반 게시물 표시
-        final post = posts[index];
-        return ListTile(
-          contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 0),
-          title: Text(
-            post.title,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500, 
-              fontFamily: 'Wanted Sans',
-              color: AppTheme.textPrimaryColor,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-          subtitle: Padding(
-            padding: const EdgeInsets.only(top: 4.0),
-            child: Text(
-              '${post.author} | ${post.date}',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-                fontFamily: 'Wanted Sans',
-              ),
-            ),
-          ),
-          onTap: () {
-            // 게시물 상세 화면으로 이동
-            // Navigator.pushNamed(context, AppRoutes.postDetail, arguments: post);
-            print('게시물 클릭: ${post.id} - ${post.title}');
-          },
-        );
-      },
-    );
-  }
-
-  // 하단 바로가기 및 협력업체 섹션 위젯
-  Widget _buildBottomQuickLinksSection(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 30),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 제목: 바로가기
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16.0),
-            child: Text(
-              '바로가기',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimaryColor,
-                fontFamily: 'Wanted Sans',
-              ),
-            ),
-          ),
-          // 바로가기 링크 컨테이너
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildWebQuickLinkItem(
-                  icon: Icons.public,
-                  label: '네이버 카페',
-                  onTap: () => _launchURL('https://cafe.naver.com/yourcafe'),
+                const SizedBox(height: 12),
+                Text(
+                  _stripHtmlTags(firstPost.content).length > 100
+                      ? '${_stripHtmlTags(firstPost.content).substring(0, 100)}...'
+                      : _stripHtmlTags(firstPost.content),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontFamily: 'Wanted Sans',
+                    color: Colors.grey[700],
+                    height: 1.6,
+                  ),
+                  maxLines: 5, // 내용 미리보기 줄 수 제한
+                  overflow: TextOverflow.ellipsis,
                 ),
-                _buildWebQuickLinkItem(
-                  icon: Icons.play_circle_filled,
-                  label: '유튜브 채널',
-                  onTap: () => _launchURL('https://www.youtube.com/yourchannel'),
-                ),
-                _buildWebQuickLinkItem(
-                  icon: Icons.chat_bubble,
-                  label: '카카오톡 단톡방',
-                  onTap: () => _launchURL('https://open.kakao.com/o/yourchatlink'),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Text(
+                      firstPost.author,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontFamily: 'Wanted Sans',
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '|', // 구분자
+                       style: TextStyle(
+                        fontSize: 13,
+                        fontFamily: 'Wanted Sans',
+                        color: Colors.grey[400],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      firstPost.date,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontFamily: 'Wanted Sans',
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          // 제목: 협력업체
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16.0),
-            child: Text(
-              '협력업체',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimaryColor,
-                fontFamily: 'Wanted Sans',
-              ),
-            ),
-          ),
-          // 협력업체 정보 컨테이너
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              children: _displayedPartners.map((partner) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+        ),
+        // 오른쪽: 나머지 게시물 목록 (최대 3개)
+        Expanded(
+          flex: 3, // 너비 비율 조정
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(), // Row 내부 ListView 스크롤 방지
+                itemCount: remainingPosts.length,
+                separatorBuilder: (context, index) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final post = remainingPosts[index];
+                  return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 0),
+                    title: Text(
+                      post.title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontFamily: 'Wanted Sans',
+                        color: AppTheme.textPrimaryColor,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.business, color: AppTheme.primaryColor),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                partner.name,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.textPrimaryColor,
-                                  fontFamily: 'Wanted Sans',
-                                ),
-                              ),
-                              SizedBox(height: 6),
-                              Text(
-                                partner.introduction,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[800],
-                                  fontFamily: 'Wanted Sans',
-                                ),
-                              ),
-                            ],
+                        Text(
+                          post.author,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontFamily: 'Wanted Sans',
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          post.date,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontFamily: 'Wanted Sans',
+                            color: Colors.grey[600],
                           ),
                         ),
                       ],
                     ),
-                    if (partner != _displayedPartners.last)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12.0),
-                        child: Divider(),
-                      ),
-                  ],
-                );
-              }).toList(),
+                    onTap: () {
+                      // 게시물 상세 화면으로 이동 (구현 필요)
+                      print('Navigate to post: ${post.id}');
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          flex: 1,
+          child: Container(
+            alignment: Alignment.center, // 텍스트 버튼 중앙정렬 추가
+            padding: const EdgeInsets.only(bottom: 50.0), // 하단 패딩 50px 추가
+            child: TextButton(
+              onPressed: () {
+                if (boardTitle == '공지사항') {
+                  Navigator.pushNamed(context, AppRoutes.notice);
+                } else if (boardTitle == 'Q&A') {
+                  Navigator.pushNamed(context, AppRoutes.qna);
+                } else {
+                  // 정보공유방 라우트가 정의되지 않은 경우 임시 처리
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('정보공유방 페이지는 아직 준비 중입니다.'))
+                  );
+                }
+              },
+              child: const Text(
+                '+ 더보기',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontFamily: 'Wanted Sans',
+                  color: AppTheme.textPrimaryColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 새로운 통합 바로가기 및 협력업체 섹션
+  Widget _buildCombinedLinksAndPartnersSection(BuildContext context) {
+    return Container(
+      color: Colors.white,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 2,
+            child: Container(),
+          ),
+          Expanded(
+            flex: 3, // _buildCommunitySection의 InformationPanel과 동일한 flex
+            child: _buildQuickLinksWebSection(context),
+          ),
+          const SizedBox(width: 30), // 동일한 간격
+          Expanded(
+            flex: 5, // _buildCommunitySection의 탭/게시판 영역과 동일한 flex
+            child: _buildPartnersWebSection(context),
           ),
         ],
       ),
     );
   }
 
+  // 웹용 바로가기 섹션
+  Widget _buildQuickLinksWebSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 제목: 바로가기
+        const Padding (
+          padding: EdgeInsets.symmetric(vertical: 16.0),
+          child: Text(
+            '바로가기',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimaryColor,
+              fontFamily: 'Wanted Sans',
+            ),
+          ),
+        ),
+        // 바로가기 링크 컨테이너
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildWebQuickLinkItem(
+                imageUrl: 'assets/icons/naver.png',
+                label: '네이버 카페 \n 바로가기',
+                color: Color(0xFF02C75C),
+                onTap: () => _launchURL('https://cafe.naver.com/yourcafe'),
+              ),
+              _buildWebQuickLinkItem(
+                imageUrl: 'assets/icons/youtube.png',
+                label: '유튜브 채널 \n 바로가기',
+                color: Color(0xFF41505D),
+                onTap: () => _launchURL('https://www.youtube.com/yourchannel'),
+              ),
+              _buildWebQuickLinkItem(
+                imageUrl: 'assets/icons/kakao.png',
+                label: '카카오톡 단톡방 \n 바로가기',
+                color: Color(0xFF381E1F),
+                onTap: () => _launchURL('https://open.kakao.com/o/yourchatlink'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 웹용 협력업체 섹션
+  Widget _buildPartnersWebSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '협력업체',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.textPrimaryColor,
+            fontFamily: 'Wanted Sans',
+          ),
+        ),
+        const SizedBox(height: 16.0),
+        if (_displayedPartners.isEmpty)
+          const Center(child: Text('등록된 협력업체가 없습니다.', style: TextStyle(fontFamily: 'Wanted Sans')))
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _displayedPartners.length,
+            separatorBuilder: (context, index) => const Divider(height: 1, thickness: 1),
+            itemBuilder: (context, index) {
+              final partner = _displayedPartners[index];
+              return ListTile(
+                contentPadding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 0), // 공지사항 목록과 유사하게
+                title: Text(
+                  partner.name, // 업체명을 주된 정보로 표시
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontFamily: 'Wanted Sans',
+                    color: AppTheme.textPrimaryColor,
+                    fontWeight: FontWeight.w500, // 필요시 제목 강조
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text( // 소개는 부가 정보로 간략히
+                  partner.introduction,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontFamily: 'Wanted Sans',
+                    color: AppTheme.textPrimaryColor,
+                  ),
+                  maxLines: 2, // 소개 내용을 두 줄까지 표시
+                  overflow: TextOverflow.ellipsis,
+                ),
+                // 아이콘은 제거 요청에 따라 추가하지 않음
+                onTap: () {
+                  // 향후 협력업체 상세 정보 페이지 등으로 이동 가능
+                  print('Tapped partner: ${partner.name}');
+                },
+              );
+            },
+          ),
+      ],
+    );
+  }
+
   // 웹 화면용 바로가기 아이템 위젯
   Widget _buildWebQuickLinkItem({
-    required IconData icon,
+    required String imageUrl,
     required String label,
+    required Color color,
     required VoidCallback onTap,
   }) {
     return InkWell(
@@ -1519,10 +1628,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 32,
-              color: AppTheme.primaryColor,
+            Image.asset(
+              imageUrl,
+              width: 32,
+              height: 32,
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(Icons.link, size: 32, color: AppTheme.primaryColor);
+              },
             ),
             SizedBox(height: 8),
             Text(
@@ -1530,7 +1642,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
-                color: AppTheme.textPrimaryColor,
+                color: color,
                 fontFamily: 'Wanted Sans',
               ),
             ),

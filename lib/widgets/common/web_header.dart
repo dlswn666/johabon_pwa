@@ -241,27 +241,28 @@ class WebHeaderState extends State<WebHeader> {
             padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
             child: Row(
               children: [
-                SizedBox(
-                  width: 400,
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, AppRoutes.home);
-                    },
-                    style: TextButton.styleFrom(overlayColor: Colors.transparent),
-                    child: Text(
-                      '미아동 791-2882일대\n신속통합 재개발 정비사업',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontFamily: 'Wanted Sans',
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.primaryColor,
+                Expanded(
+                  flex: 2,
+                  child: SizedBox(
+                    width: 400,
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, AppRoutes.home);
+                      },
+                      style: TextButton.styleFrom(overlayColor: Colors.transparent),
+                      child: Text(
+                        '미아동 791-2882일대\n신속통합 재개발 정비사업',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontFamily: 'Wanted Sans',
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.primaryColor,
+                        ),
                       ),
                     ),
                   ),
                 ),
-
-                const Spacer(),
 
                 ...menuData.map((menu) {
                   final id = menu['id'] as String;
@@ -275,6 +276,7 @@ class WebHeaderState extends State<WebHeader> {
                   }
 
                   return Expanded(
+                    flex: 1,
                     child: MouseRegion(
                       key: itemKey, 
                       onEnter: (_) {
@@ -300,6 +302,7 @@ class WebHeaderState extends State<WebHeader> {
                         hoverColor: const Color(0xFFF2F2F2),
                         child: Container(
                           margin: const EdgeInsets.symmetric(horizontal: 8),
+                          alignment: Alignment.center,
                           child: Text(
                             title,
                             textAlign: TextAlign.center,
@@ -315,26 +318,25 @@ class WebHeaderState extends State<WebHeader> {
                     ),
                   );
                 }),
-
-                const Spacer(),
                 
-                // 로그인 상태 조건 없이 항상 로그아웃 버튼 표시 
-                TextButton(
-                  onPressed: () {
-                    print('Logout button pressed!');
-                    // 로그아웃 후 로그인 페이지로 이동하는 콜백 추가
-                    Provider.of<AuthProvider>(context, listen: false).logout().then((_) {
-                      Navigator.pushNamedAndRemoveUntil(
-                        context, 
-                        AppRoutes.login, // home 대신 login 페이지로 이동
-                        (route) => false // 모든 이전 라우트 제거
-                      );
-                    });
-                  },
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.primaryColor,
+                Expanded(
+                  flex: 1,
+                  child: TextButton(
+                    onPressed: () {
+                      print('Logout button pressed!');
+                      Provider.of<AuthProvider>(context, listen: false).logout().then((_) {
+                        Navigator.pushNamedAndRemoveUntil(
+                          context, 
+                          AppRoutes.login, 
+                          (route) => false
+                        );
+                      });
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppTheme.primaryColor,
+                    ),
+                    child: const Text('로그아웃', textAlign: TextAlign.center, style: TextStyle(fontSize: 28, fontFamily: 'Wanted Sans', fontWeight: FontWeight.w600),),
                   ),
-                  child: const Text('로그아웃', textAlign: TextAlign.center, style: TextStyle(fontSize: 28, fontFamily: 'Wanted Sans', fontWeight: FontWeight.w600),),
                 ),
               ],
             ),
