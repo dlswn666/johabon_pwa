@@ -18,6 +18,7 @@ import '../../widgets/common/web_footer.dart'; // WebFooter 임포트 추가
 import 'dart:math'; // Random 클래스 사용을 위해 추가
 import 'dart:async'; // Timer 사용을 위해 추가
 import 'package:johabon_pwa/widgets/common/app_drawer.dart';
+import 'package:johabon_pwa/widgets/common/mobile_header.dart'; // MobileHeader 임포트 추가
 
 // API 응답을 가정한 샘플 데이터 (HomeScreen 클래스 바깥에 정의)
 const List<Map<String, dynamic>> boardInfoSampleData = [
@@ -694,41 +695,42 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     return Scaffold(
       key: _scaffoldKey, // Scaffold Key 할당
+      appBar: MobileHeader(scaffoldKey: _scaffoldKey), // AppBar에 MobileHeader 사용
       endDrawer: AppDrawer(), // AppDrawer 추가
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // 1. 상단 헤더 영역
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-              color: Colors.white,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Expanded(
-                    child: Text(
-                      '미아동 791-2882일대 신속통합 재개발 정비사업',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimaryColor,
-                        fontFamily: 'Wanted Sans',
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.menu, color: AppTheme.textPrimaryColor),
-                    onPressed: () {
-                      // 햄버거 메뉴 동작
-                      _scaffoldKey.currentState?.openEndDrawer();
-                    },
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                ],
-              ),
-            ),
+            // 1. 상단 헤더 영역 -> MobileHeader로 대체
+            // Container(
+            //   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            //   color: Colors.white,
+            //   child: Row(
+            //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            //     children: [
+            //       const Expanded(
+            //         child: Text(
+            //           '미아동 791-2882일대 신속통합 재개발 정비사업',
+            //           style: TextStyle(
+            //             fontSize: 16,
+            //             fontWeight: FontWeight.w600,
+            //             color: AppTheme.textPrimaryColor,
+            //             fontFamily: 'Wanted Sans',
+            //           ),
+            //           overflow: TextOverflow.ellipsis,
+            //         ),
+            //       ),
+            //       IconButton(
+            //         icon: const Icon(Icons.menu, color: AppTheme.textPrimaryColor),
+            //         onPressed: () {
+            //           // 햄버거 메뉴 동작
+            //           _scaffoldKey.currentState?.openEndDrawer();
+            //         },
+            //         padding: EdgeInsets.zero,
+            //         constraints: const BoxConstraints(),
+            //       ),
+            //     ],
+            //   ),
+            // ),
             
             // 2. 메인 배너 영역
             Stack(
