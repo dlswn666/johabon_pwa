@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:johabon_pwa/config/routes.dart';
 import 'package:johabon_pwa/config/theme.dart';
+import 'package:johabon_pwa/providers/union_provider.dart';
 import 'package:johabon_pwa/widgets/common/address_search_dialog.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'dart:js' as js;
 
 class RegisterScreen extends StatefulWidget {
@@ -94,8 +97,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        // 성공 후 로그인 화면으로 돌아가거나 다른 동작 수행
-        // Navigator.of(context).pop(); 
+        
+        // 슬러그 기반으로 로그인 페이지로 이동
+        final unionProvider = Provider.of<UnionProvider>(context, listen: false);
+        final slug = unionProvider.currentUnion?.homepage;
+        
+        if (slug != null) {
+          // 슬러그/login 경로로 이동
+          Navigator.pushReplacementNamed(context, '/$slug/${AppRoutes.login}');
+        } else {
+          // 슬러그가 없는 경우 이전 화면으로 돌아가기
+          if (Navigator.canPop(context)) {
+            Navigator.of(context).pop();
+          } else {
+            // 이전 화면이 없으면 404 페이지로 이동
+            Navigator.pushReplacementNamed(context, AppRoutes.notFound);
+          }
+        }
       }
     }
   }

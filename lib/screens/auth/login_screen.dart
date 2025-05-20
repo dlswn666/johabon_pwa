@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:johabon_pwa/config/routes.dart';
 import 'package:johabon_pwa/config/theme.dart';
 import 'package:johabon_pwa/providers/auth_provider.dart';
+import 'package:johabon_pwa/providers/union_provider.dart';
 import 'package:johabon_pwa/utils/responsive_layout.dart';
 import 'package:johabon_pwa/widgets/common/address_search_dialog.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
@@ -132,11 +133,25 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
       if (success) {
         if (mounted) {
-          Navigator.pushNamedAndRemoveUntil(
-            context, 
-            AppRoutes.home, 
-            (route) => false,
-          );
+          // 슬러그 기반으로 홈 화면으로 이동
+          final unionProvider = Provider.of<UnionProvider>(context, listen: false);
+          final slug = unionProvider.currentUnion?.homepage;
+          
+          if (slug != null) {
+            // 슬러그/home 형식으로 이동
+            Navigator.pushNamedAndRemoveUntil(
+              context, 
+              '/$slug', // 슬러그 홈으로 이동 (AppRoutes.home은 자동으로 포함됨)
+              (route) => false,
+            );
+          } else {
+            // 슬러그가 없는 경우 404 페이지로 이동
+            Navigator.pushNamedAndRemoveUntil(
+              context, 
+              AppRoutes.notFound, 
+              (route) => false,
+            );
+          }
         }
       } else {
         setState(() {
