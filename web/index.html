@@ -116,9 +116,10 @@
                 var splash = document.getElementById('splash');
                 if (splash) {
                     splash.style.opacity = '0';
+                    splash.style.transition = 'opacity 0.2s';
                     setTimeout(function () {
                         splash.remove();
-                    }, 500);
+                    }, 200);
                 }
             });
         </script>

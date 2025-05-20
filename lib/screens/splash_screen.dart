@@ -9,7 +9,9 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
   @override
   void initState() {
     super.initState();
@@ -17,74 +19,152 @@ class _SplashScreenState extends State<SplashScreen> {
     Timer(const Duration(seconds: 3), () {
       Navigator.pushReplacementNamed(context, AppRoutes.login);
     });
+
+    // 스피너 애니메이션 컨트롤러 초기화
+    _controller = AnimationController(
+      duration: const Duration(seconds: 1),
+      vsync: this,
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF2A364E), // 세련된 딥 블루 배경색
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // 로고 또는 아이콘
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.1),
+      body: Container(
+        // index.html과 동일한 그라디언트 배경 적용
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF1a2842), 
+              Color(0xFF2a3f68), 
+              Color(0xFF3c5c8e),
+            ],
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // 아이콘 컨테이너
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.bar_chart, // 웹 버전과 유사한 아이콘 사용
+                    size: 80,
+                    color: Colors.white,
+                  ),
+                ),
               ),
-              child: const Icon(
-                Icons.apartment_rounded, 
-                size: 80,
-                color: Colors.white,
+              
+              const SizedBox(height: 40),
+              
+              // 메인 텍스트
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 24),
+                child: const Text(
+                  '재개발/재건축\n조합원 전용 웹페이지',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    height: 1.4,
+                    letterSpacing: -0.5,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black26,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
-            ),
-            
-            const SizedBox(height: 40),
-            
-            // 메인 텍스트
-            const Text(
-              '재개발/재건축 조합원 전용 페이지',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                height: 1.4,
-                letterSpacing: -0.5,
+              
+              const SizedBox(height: 60),
+              
+              // 커스텀 로딩 스피너 (웹 버전과 유사하게 구현)
+              SizedBox(
+                width: 50,
+                height: 50,
+                child: AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, child) {
+                    return CustomPaint(
+                      painter: SpinnerPainter(_controller.value),
+                    );
+                  },
+                ),
               ),
-              textAlign: TextAlign.center,
-            ),
-            
-            const SizedBox(height: 50),
-            
-            // 로딩 스피너
-            const SizedBox(
-              width: 50,
-              height: 50,
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                strokeWidth: 4,
-              ),
-            ),
-            
-            const SizedBox(height: 20),
-            
-            // 추가 메시지
-            const Text(
-              '로딩 중입니다...',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white70,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            
-            // 하단 여백
-            const SizedBox(height: 80),
-          ],
+            ],
+          ),
         ),
       ),
     );
+  }
+}
+
+// 웹 버전의 스피너와 유사한 커스텀 스피너 구현
+class SpinnerPainter extends CustomPainter {
+  final double progress;
+  
+  SpinnerPainter(this.progress);
+  
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    
+    // 배경 원
+    final backgroundPaint = Paint()
+      ..color = Colors.white.withOpacity(0.3)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4;
+    
+    canvas.drawCircle(center, radius, backgroundPaint);
+    
+    // 회전하는 부분
+    final foregroundPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
+    
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    
+    // 회전 각도 계산
+    final startAngle = -0.5 * 3.14; // -90도 (상단에서 시작)
+    final sweepAngle = 2 * 3.14 * 0.3; // 원의 약 30%만 그리기
+    
+    // 진행 상황에 따라 시작 각도 회전
+    final rotatedStartAngle = startAngle + (2 * 3.14 * progress);
+    
+    canvas.drawArc(rect, rotatedStartAngle, sweepAngle, false, foregroundPaint);
+  }
+  
+  @override
+  bool shouldRepaint(covariant SpinnerPainter oldDelegate) {
+    return oldDelegate.progress != progress;
   }
 } 
