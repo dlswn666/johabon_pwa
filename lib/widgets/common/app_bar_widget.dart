@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:johabon_pwa/config/routes.dart';
 import 'package:johabon_pwa/config/theme.dart';
 import 'package:johabon_pwa/providers/auth_provider.dart';
+import 'package:johabon_pwa/providers/union_provider.dart';
 import 'package:provider/provider.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -51,15 +52,40 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                         icon: const Icon(Icons.person_rounded),
                         onSelected: (value) {
                           if (value == 'profile') {
-                            Navigator.pushNamed(context, AppRoutes.profile);
+                            // 현재 슬러그 기반으로 프로필 경로 생성
+                            final unionProvider = Provider.of<UnionProvider>(context, listen: false);
+                            final slug = unionProvider.currentUnion?.homepage;
+                            
+                            if (slug != null) {
+                              Navigator.pushNamed(context, '/$slug/${AppRoutes.profile}');
+                            } else {
+                              // 현재 슬러그가 없으면 안내 메시지 표시
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('조합 정보를 찾을 수 없습니다.')),
+                              );
+                            }
                           } else if (value == 'logout') {
                             // 로그아웃 구현
                             authProvider.logout();
-                            Navigator.pushNamedAndRemoveUntil(
-                              context,
-                              AppRoutes.landing,
-                              (route) => false,
-                            );
+                            
+                            // 현재 슬러그 기반으로 로그인 페이지로 이동
+                            final unionProvider = Provider.of<UnionProvider>(context, listen: false);
+                            final slug = unionProvider.currentUnion?.homepage;
+                            
+                            if (slug != null) {
+                              Navigator.pushNamedAndRemoveUntil(
+                                context,
+                                '/$slug/${AppRoutes.login}',
+                                (route) => false,
+                              );
+                            } else {
+                              // 슬러그가 없으면 404로 이동
+                              Navigator.pushNamedAndRemoveUntil(
+                                context,
+                                AppRoutes.notFound,
+                                (route) => false,
+                              );
+                            }
                           }
                         },
                         itemBuilder: (BuildContext context) {
@@ -91,7 +117,18 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                       return IconButton(
                         icon: const Icon(Icons.login_rounded),
                         onPressed: () {
-                          Navigator.pushNamed(context, AppRoutes.login);
+                          // 현재 슬러그 기반으로 로그인 페이지로 이동
+                          final unionProvider = Provider.of<UnionProvider>(context, listen: false);
+                          final slug = unionProvider.currentUnion?.homepage;
+                          
+                          if (slug != null) {
+                            Navigator.pushNamed(context, '/$slug/${AppRoutes.login}');
+                          } else {
+                            // 슬러그가 없으면 안내 메시지 표시
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('조합 정보를 찾을 수 없습니다.')),
+                            );
+                          }
                         },
                       );
                     }
