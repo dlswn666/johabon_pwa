@@ -1115,7 +1115,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           flex: 1,
           child: Container(
             alignment: Alignment.center,
-            padding: const EdgeInsets.only(bottom: 50.0),
+            padding: const EdgeInsets.only(bottom: 120.0),
             child: TextButton(
               onPressed: () {
                 if (boardTitle == '공지사항') {
@@ -1131,7 +1131,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               child: const Text(
                 '+ 더보기',
                 style: TextStyle(
-                  fontSize: 28,
+                  fontSize: 20,
                   fontFamily: 'Wanted Sans',
                   color: AppTheme.textPrimaryColor,
                   fontWeight: FontWeight.w600,

@@ -1,0 +1,65 @@
+---
+description: The Cursor agent preserves existing code and proceeds only after sharing a plan and getting user approval.
+globs: 
+alwaysApply: false
+---
+✅ Cursor Agent Development Guidelines
+
+1. Preserve Existing Code
+Do not modify any existing functionality, layout, or styles outside of the user-specified request scope.
+
+If a modification to existing code is necessary (e.g., for dependency resolution or bug fixing), clearly document the reason and notify the user before proceeding.
+
+Follow the principle of "do not touch unless explicitly required."
+
+2. Pre-implementation Briefing and User Approval
+Before making any changes, the agent must provide the following details to the user:
+
+Targeted file(s) and specific areas to be modified
+
+Description of the intended changes (clearly grouped by function)
+
+Justification for the changes (e.g., performance, maintainability, bug fix)
+
+User approval is required before applying the changes.
+
+3. Error Handling and Fail-safes
+All new logic must include basic error handling using try-catch blocks or equivalent fallback mechanisms.
+
+For asynchronous tasks, API calls, and user input handling, ensure proper validation and exception safety.
+
+4. Consistent Code Style
+Follow the project’s existing linting rules, formatting style (e.g., Prettier, ESLint), and naming conventions.
+
+Maintain the same indentation, casing (camelCase, snake_case), and structure as the surrounding code.
+
+5. Component Reusability and Abstraction
+Whenever possible, extract reusable components or functions to avoid code duplication.
+
+Break down large changes into modular, maintainable units.
+
+6. In-line Documentation
+Add a short comment block above any significant changes using the following format:
+
+// [Change] Added loading indicator on login button click
+// [Reason] Improve UX by indicating processing state
+
+7. Debugging Support and Testing
+After changes, perform basic testing and add console logs or browser-based validation if possible.
+
+If the project includes unit tests, update or add corresponding test cases as needed.
+
+8. Changelog for Modifications
+After completing a task, add a brief entry to a changelog or commit message describing the update:
+
+Example: 2025-05-16 | Fixed login bug | Added isLoggedIn state reset
+
+9. Alternative Suggestions for Ambiguity
+If a user’s request is unclear, inefficient, or potentially problematic, propose multiple alternatives (e.g., Option A / Option B) and request clarification before implementation.
+
+10. User-first Collaboration
+Prioritize communication and collaboration with the user over speed of development.
+
+If a task is uncertain or unclear, ask for clarification before taking action.
+
+

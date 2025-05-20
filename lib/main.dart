@@ -5,9 +5,15 @@ import 'package:johabon_pwa/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() {
+void main() async{
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(
+    url: 'https://xschknzenjbtxddkxrnq.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhzY2hrbnplbmpidHhkZGt4cm5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczNzgzNDgsImV4cCI6MjA2Mjk1NDM0OH0.EASwXT9GTV6kpqAZIkY0WUxGnTJ3BBHF3m0GWmdSwqQ',
+  );
   
   // 전체 화면 모드 설정
   SystemChrome.setEnabledSystemUIMode(
