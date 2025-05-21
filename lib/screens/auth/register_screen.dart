@@ -9,6 +9,8 @@ import 'package:provider/provider.dart';
 import 'dart:js' as js;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:johabon_pwa/utils/password_util.dart';
+import 'package:flutter/services.dart';
+import 'package:month_year_picker/month_year_picker.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -31,6 +33,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   // 아이디 중복 확인 상태
   bool _isIdChecked = false;
   bool _isIdAvailable = false;
+  bool _isLoading = false; // 로딩 상태 추가
   
   final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
   DateTime? _selectedDate;
@@ -149,26 +152,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final DateTime now = DateTime.now();
     final DateTime initialDate = _selectedDate ?? DateTime(now.year - 20, now.month, now.day);
     
-    final DateTime? picked = await showDatePicker(
+    // 먼저 연도와 월 선택
+    final DateTime? pickedYearMonth = await showMonthYearPicker(
       context: context,
       initialDate: initialDate,
       firstDate: DateTime(1900),
       lastDate: now,
       locale: const Locale('ko', 'KR'),
-      builder: (BuildContext context, Widget? child) {
+      builder: (context, child) {
         return Theme(
           data: ThemeData.light().copyWith(
             colorScheme: const ColorScheme.light(
               primary: AppTheme.primaryColor,
             ),
-            textTheme: const TextTheme(
-              titleLarge: TextStyle(
-                fontSize: 18, 
-                fontWeight: FontWeight.bold,
-              ),
-              labelLarge: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
+            dialogTheme: DialogTheme(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.0),
               ),
             ),
           ),
@@ -176,12 +175,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
       },
     );
-    
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-        _birthController.text = _dateFormat.format(picked);
-      });
+
+    if (pickedYearMonth != null) {
+      // 선택된 연도와 월을 기반으로 일자 선택
+      final DateTime? pickedDay = await showDatePicker(
+        context: context,
+        initialDate: DateTime(pickedYearMonth.year, pickedYearMonth.month, 15), // 해당 월의 중간 일자
+        firstDate: DateTime(pickedYearMonth.year, pickedYearMonth.month, 1),
+        lastDate: DateTime(pickedYearMonth.year, pickedYearMonth.month + 1, 0), // 해당 월의 마지막 날
+        locale: const Locale('ko', 'KR'),
+        builder: (context, child) {
+          return Theme(
+            data: ThemeData.light().copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: AppTheme.primaryColor,
+              ),
+              dialogTheme: DialogTheme(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16.0),
+                ),
+              ),
+            ),
+            child: child!,
+          );
+        },
+        initialDatePickerMode: DatePickerMode.day,
+      );
+
+      if (pickedDay != null) {
+        setState(() {
+          _selectedDate = pickedDay;
+          _birthController.text = _dateFormat.format(pickedDay);
+        });
+      }
     }
   }
 
@@ -308,6 +334,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
     
+    // 로딩 상태 시작
+    setState(() {
+      _isLoading = true;
+    });
+    
     try {
       String fullAddress = _addressController.text;
       if (_detailAddressController.text.isNotEmpty) {
@@ -333,7 +364,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final unionId = unionResponse['id'];
       
       // Supabase users 테이블에 데이터 저장
-      Supabase.instance.client.from('users').insert({
+      await Supabase.instance.client.from('users').insert({
         'user_id': _idController.text,
         'password': hashedPassword, // 암호화된 비밀번호 저장
         'name': _nameController.text,
@@ -346,6 +377,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'union_id': unionId,
       }).select().then((_) {
         if (mounted) {
+          // 로딩 상태 종료
+          setState(() {
+            _isLoading = false;
+          });
+          
           // 성공 메시지 모달 표시
           _showSuccessModal(
             '회원가입 완료',
@@ -372,6 +408,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         }
       }).catchError((error) {
         if (mounted) {
+          // 로딩 상태 종료
+          setState(() {
+            _isLoading = false;
+          });
+          
           // 실패 메시지 모달 표시
           _showValidationErrorModal(
             '회원가입 실패',
@@ -381,6 +422,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
     } catch (error) {
       if (mounted) {
+        // 로딩 상태 종료
+        setState(() {
+          _isLoading = false;
+        });
+        
         // 실패 메시지 모달 표시
         _showValidationErrorModal(
           '회원가입 실패',
@@ -404,6 +450,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     FocusNode? focusNode,
     TextInputAction? textInputAction,
     ValueChanged<String>? onFieldSubmitted,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     // kIsWeb 대신 화면 너비로 분기
     final bool isNarrowScreen = MediaQuery.of(context).size.width < 600; // 예: 600px 미만을 좁은 화면으로 간주
@@ -441,6 +488,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     onTap: onTap,
                     textInputAction: textInputAction,
                     onFieldSubmitted: onFieldSubmitted,
+                    inputFormatters: inputFormatters,
                     style: const TextStyle(
                       fontFamily: 'Wanted Sans',
                       fontSize: 15,
@@ -505,6 +553,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   onTap: onTap,
                   textInputAction: textInputAction,
                   onFieldSubmitted: onFieldSubmitted,
+                  inputFormatters: inputFormatters,
                   style: const TextStyle(
                     fontFamily: 'Wanted Sans',
                     fontSize: 15,
@@ -648,6 +697,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: _phoneController,
                     hintText: '연락 가능한 핸드폰 번호를 입력해주세요.',
                     keyboardType: TextInputType.phone,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly, // 숫자만 입력 가능
+                      LengthLimitingTextInputFormatter(11), // 최대 11자리 (예: 01012345678)
+                    ],
                     validator: null,
                   ),
                   const SizedBox(height: 16),
@@ -658,6 +711,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     hintText: '1900.00.00',
                     readOnly: true,
                     onTap: () => _selectDate(context),
+                    suffix: Icon(
+                      Icons.calendar_today_rounded,
+                      size: 18.0,
+                      color: Colors.grey.shade600,
+                    ),
                     validator: null,
                   ),
                   const SizedBox(height: 16),
@@ -723,7 +781,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     children: [
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () {
+                          onPressed: _isLoading ? null : () {
                             if (Navigator.canPop(context)) {
                               Navigator.of(context).pop();
                             }
@@ -750,7 +808,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: _register,
+                          onPressed: _isLoading ? null : _register,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF75D49B),
                             padding: const EdgeInsets.symmetric(vertical: 14),
@@ -758,16 +816,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             elevation: 0,
+                            disabledBackgroundColor: const Color(0xFF75D49B).withOpacity(0.7),
                           ),
-                          child: Text(
-                            '가입하기',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              fontFamily: 'Wanted Sans',
-                            ),
-                          ),
+                          child: _isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.0,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : Text(
+                                '가입하기',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  fontFamily: 'Wanted Sans',
+                                ),
+                              ),
                         ),
                       ),
                     ],

@@ -5,12 +5,15 @@ import 'package:johabon_pwa/providers/auth_provider.dart';
 import 'package:johabon_pwa/providers/union_provider.dart';
 import 'package:johabon_pwa/utils/responsive_layout.dart';
 import 'package:johabon_pwa/widgets/common/address_search_dialog.dart';
+import 'package:johabon_pwa/widgets/common/loading_dialog.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'dart:js' as js;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:johabon_pwa/utils/password_util.dart';
+import 'package:flutter/services.dart';
+import 'package:month_year_picker/month_year_picker.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -26,6 +29,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   final _idFocusNode = FocusNode();
   final _passwordFocusNode = FocusNode();
   bool _isLoading = false;
+  bool _isRegisterLoading = false;
   String? _errorMessage;
   
   // 회원가입 모달 컨트롤러
@@ -278,29 +282,22 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     final DateTime now = DateTime.now();
     final DateTime initialDate = _selectedDate ?? DateTime(now.year - 20, now.month, now.day);
     
-    final DateTime? picked = await showDatePicker(
+    // 먼저 연도와 월 선택
+    final DateTime? pickedYearMonth = await showMonthYearPicker(
       context: context,
       initialDate: initialDate,
       firstDate: DateTime(1900),
       lastDate: now,
-      locale: const Locale('ko', 'KR'), // 한국어 로케일 설정
-      builder: (BuildContext context, Widget? child) {
+      locale: const Locale('ko', 'KR'),
+      builder: (context, child) {
         return Theme(
           data: ThemeData.light().copyWith(
             colorScheme: const ColorScheme.light(
               primary: AppTheme.primaryColor,
             ),
-            // 한국어 텍스트 설정
-            textTheme: const TextTheme(
-              // 헤더 타이틀 스타일
-              titleLarge: TextStyle(
-                fontSize: 18, 
-                fontWeight: FontWeight.bold,
-              ),
-              // 버튼 텍스트 스타일
-              labelLarge: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
+            dialogTheme: DialogTheme(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.0),
               ),
             ),
           ),
@@ -308,12 +305,39 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         );
       },
     );
-    
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-        _registerBirthController.text = _dateFormat.format(picked);
-      });
+
+    if (pickedYearMonth != null) {
+      // 선택된 연도와 월을 기반으로 일자 선택
+      final DateTime? pickedDay = await showDatePicker(
+        context: context,
+        initialDate: DateTime(pickedYearMonth.year, pickedYearMonth.month, 15), // 해당 월의 중간 일자
+        firstDate: DateTime(pickedYearMonth.year, pickedYearMonth.month, 1),
+        lastDate: DateTime(pickedYearMonth.year, pickedYearMonth.month + 1, 0), // 해당 월의 마지막 날
+        locale: const Locale('ko', 'KR'),
+        builder: (context, child) {
+          return Theme(
+            data: ThemeData.light().copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: AppTheme.primaryColor,
+              ),
+              dialogTheme: DialogTheme(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16.0),
+                ),
+              ),
+            ),
+            child: child!,
+          );
+        },
+        initialDatePickerMode: DatePickerMode.day,
+      );
+
+      if (pickedDay != null) {
+        setState(() {
+          _selectedDate = pickedDay;
+          _registerBirthController.text = _dateFormat.format(pickedDay);
+        });
+      }
     }
   }
 
@@ -334,19 +358,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     
     try {
       // 로딩 표시
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return const Dialog(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            child: Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
-        }
-      );
+      LoadingDialog.show(context);
       
       // Supabase에서 아이디 중복 확인
       final result = await Supabase.instance.client
@@ -356,7 +368,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           .maybeSingle();
       
       // 로딩 다이얼로그 닫기
-      Navigator.of(context).pop();
+      LoadingDialog.hide(context);
       
       setState(() {
         _isIdChecked = true;
@@ -375,7 +387,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       }
     } catch (e) {
       // 로딩 다이얼로그 닫기
-      if (context.mounted) Navigator.of(context).pop();
+      if (context.mounted) LoadingDialog.hide(context);
       
       // 오류 메시지
       _showValidationErrorModal('오류', '중복 확인 중 오류가 발생했습니다: ${e.toString()}');
@@ -440,6 +452,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       return;
     }
     
+    // 로딩 상태 시작 - 스피너는 버튼에 직접 표시, 전체 화면 로딩은 별도로 표시
+    setState(() {
+      _isRegisterLoading = true;
+    });
+    
+    // 전체 화면 로딩 다이얼로그 표시
+    LoadingDialog.show(context);
+    
     try {
       // 권리소재지와 상세 주소 결합
       String fullAddress = _registerAddressController.text;
@@ -479,6 +499,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       }).select();
       
       if (mounted) {
+        // 로딩 상태 종료
+        setState(() {
+          _isRegisterLoading = false;
+        });
+        
+        // 로딩 다이얼로그 닫기
+        LoadingDialog.hide(context);
+        
         Navigator.of(context).pop(); // 모달 닫기
         
         // 성공 메시지 모달 표시
@@ -489,6 +517,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       }
     } catch (e) {
       if (mounted) {
+        // 로딩 상태 종료
+        setState(() {
+          _isRegisterLoading = false;
+        });
+        
+        // 로딩 다이얼로그 닫기
+        LoadingDialog.hide(context);
+        
         Navigator.of(context).pop(); // 모달 닫기
         
         // 실패 메시지 모달 표시
@@ -634,12 +670,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       controller: _registerPhoneController,
                       hintText: '연락 가능한 핸드폰 번호를 입력해주세요.',
                       keyboardType: TextInputType.phone,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return '핸드폰 번호를 입력해주세요';
-                        }
-                        return null;
-                      },
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly, // 숫자만 입력 가능
+                        LengthLimitingTextInputFormatter(11), // 최대 11자리 (예: 01012345678)
+                      ],
                     ),
                     const SizedBox(height: 16),
 
@@ -650,12 +684,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       hintText: '1900.00.00',
                       readOnly: true,
                       onTap: () => _selectDate(context),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return '생년월일을 선택해주세요';
-                        }
-                        return null;
-                      },
+                      suffix: Icon(
+                        Icons.calendar_today_rounded,
+                        size: 18.0,
+                        color: Colors.grey.shade600,
+                      ),
                     ),
                     const SizedBox(height: 16),
 
@@ -734,7 +767,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       children: [
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () {
+                            onPressed: _isRegisterLoading ? null : () {
                               Navigator.of(context).pop();
                             },
                             style: ElevatedButton.styleFrom(
@@ -759,24 +792,34 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: _register,
+                            onPressed: _isRegisterLoading ? null : _register,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF75D49B), // 이미지 참고
+                              backgroundColor: const Color(0xFF75D49B),
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               elevation: 0,
+                              disabledBackgroundColor: const Color(0xFF75D49B).withOpacity(0.7),
                             ),
-                            child: Text(
-                              '가입하기',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                fontFamily: 'Wanted Sans',
-                              ),
-                            ),
+                            child: _isRegisterLoading
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.0,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : Text(
+                                  '가입하기',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    fontFamily: 'Wanted Sans',
+                                  ),
+                                ),
                           ),
                         ),
                       ],
@@ -803,6 +846,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     FormFieldValidator<String>? validator, // 사용하지 않지만 호환성을 위해 유지
     VoidCallback? onTap,
     Widget? suffix,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -832,6 +876,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   obscureText: obscureText,
                   readOnly: readOnly,
                   onTap: onTap,
+                  inputFormatters: inputFormatters,
                   style: TextStyle( // 입력 텍스트 스타일
                     fontFamily: 'Wanted Sans',
                     fontSize: 15,
