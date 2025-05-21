@@ -308,8 +308,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       return;
     }
     
-    if (username.length < 6) {
-      _showValidationErrorModal('아이디 오류', '아이디는 6자 이상이어야 합니다.');
+    if (username.length < 3) {
+      _showValidationErrorModal('아이디 오류', '아이디는 3자 이상이어야 합니다.');
       return;
     }
     
@@ -359,8 +359,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       return;
     }
     
-    if (_registerIdController.text.length < 6) {
-      _showValidationErrorModal('회원가입 오류', '아이디는 6자 이상이어야 합니다.');
+    if (_registerIdController.text.length < 3) {
+      _showValidationErrorModal('회원가입 오류', '아이디는 3자 이상이어야 합니다.');
       return;
     }
     
@@ -374,8 +374,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       return;
     }
     
-    if (_registerPasswordController.text.length < 10) {
-      _showValidationErrorModal('회원가입 오류', '비밀번호는 10자 이상이어야 합니다.');
+    if (_registerPasswordController.text.length < 8) {
+      _showValidationErrorModal('회원가입 오류', '비밀번호는 8자 이상이어야 합니다.');
       return;
     }
     
@@ -534,13 +534,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     _buildRegisterTextFieldRow(
                       label: '아이디',
                       controller: _registerIdController,
-                      hintText: '아이디를 입력하세요. (6자 이상)',
+                      hintText: '아이디를 입력하세요. (3자 이상)',
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return '아이디를 입력해주세요';
                         }
-                        if (value.length < 6) {
-                          return '아이디는 6자 이상이어야 합니다.';
+                        if (value.length < 3) {
+                          return '아이디는 3자 이상이어야 합니다.';
                         }
                         return null;
                       },
@@ -575,14 +575,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     _buildRegisterTextFieldRow(
                       label: '비밀번호',
                       controller: _registerPasswordController,
-                      hintText: '비밀번호를 입력하세요. (10자 이상)',
+                      hintText: '비밀번호를 입력하세요. (8자 이상)',
                       obscureText: true,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return '비밀번호를 입력해주세요';
                         }
-                        if (value.length < 10) {
-                          return '비밀번호는 10자 이상이어야 합니다';
+                        if (value.length < 8) {
+                          return '비밀번호는 8자 이상이어야 합니다';
                         }
                         return null;
                       },

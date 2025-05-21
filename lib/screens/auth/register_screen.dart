@@ -178,8 +178,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
     
-    if (username.length < 6) {
-      _showValidationErrorModal('아이디 오류', '아이디는 6자 이상이어야 합니다.');
+    if (username.length < 3) {
+      _showValidationErrorModal('아이디 오류', '아이디는 3자 이상이어야 합니다.');
       return;
     }
     
@@ -240,8 +240,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
     
-    if (_idController.text.length < 6) {
-      _showValidationErrorModal('회원가입 오류', '아이디는 6자 이상이어야 합니다.');
+    if (_idController.text.length < 3) {
+      _showValidationErrorModal('회원가입 오류', '아이디는 3자 이상이어야 합니다.');
       return;
     }
     
@@ -256,8 +256,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
     
-    if (_passwordController.text.length < 10) {
-      _showValidationErrorModal('회원가입 오류', '비밀번호는 10자 이상이어야 합니다.');
+    if (_passwordController.text.length < 8) {
+      _showValidationErrorModal('회원가입 오류', '비밀번호는 8자 이상이어야 합니다.');
       return;
     }
     
@@ -594,7 +594,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   _buildRegisterTextFieldRow(
                     label: '아이디',
                     controller: _idController,
-                    hintText: '아이디를 입력하세요. (6자 이상)',
+                    hintText: '아이디를 입력하세요. (3자 이상)',
                     validator: null,
                     suffix: SizedBox(
                       width: 90,
@@ -626,7 +626,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   _buildRegisterTextFieldRow(
                     label: '비밀번호',
                     controller: _passwordController,
-                    hintText: '비밀번호를 입력하세요. (10자 이상)',
+                    hintText: '비밀번호를 입력하세요. (8자 이상)',
                     obscureText: true,
                     validator: null,
                   ),
