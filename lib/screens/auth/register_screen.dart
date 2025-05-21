@@ -3,6 +3,7 @@ import 'package:johabon_pwa/config/routes.dart';
 import 'package:johabon_pwa/config/theme.dart';
 import 'package:johabon_pwa/providers/union_provider.dart';
 import 'package:johabon_pwa/widgets/common/address_search_dialog.dart';
+import 'package:johabon_pwa/widgets/common/calendar_dialog.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -10,7 +11,6 @@ import 'dart:js' as js;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:johabon_pwa/utils/password_util.dart';
 import 'package:flutter/services.dart';
-import 'package:month_year_picker/month_year_picker.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -152,62 +152,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final DateTime now = DateTime.now();
     final DateTime initialDate = _selectedDate ?? DateTime(now.year - 20, now.month, now.day);
     
-    // 먼저 연도와 월 선택
-    final DateTime? pickedYearMonth = await showMonthYearPicker(
+    // table_calendar를 사용한 달력 다이얼로그 표시
+    final DateTime? pickedDate = await CalendarDialog.show(
       context: context,
       initialDate: initialDate,
       firstDate: DateTime(1900),
       lastDate: now,
-      locale: const Locale('ko', 'KR'),
-      builder: (context, child) {
-        return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppTheme.primaryColor,
-            ),
-            dialogTheme: DialogTheme(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16.0),
-              ),
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
 
-    if (pickedYearMonth != null) {
-      // 선택된 연도와 월을 기반으로 일자 선택
-      final DateTime? pickedDay = await showDatePicker(
-        context: context,
-        initialDate: DateTime(pickedYearMonth.year, pickedYearMonth.month, 15), // 해당 월의 중간 일자
-        firstDate: DateTime(pickedYearMonth.year, pickedYearMonth.month, 1),
-        lastDate: DateTime(pickedYearMonth.year, pickedYearMonth.month + 1, 0), // 해당 월의 마지막 날
-        locale: const Locale('ko', 'KR'),
-        builder: (context, child) {
-          return Theme(
-            data: ThemeData.light().copyWith(
-              colorScheme: const ColorScheme.light(
-                primary: AppTheme.primaryColor,
-              ),
-              dialogTheme: DialogTheme(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16.0),
-                ),
-              ),
-            ),
-            child: child!,
-          );
-        },
-        initialDatePickerMode: DatePickerMode.day,
-      );
-
-      if (pickedDay != null) {
-        setState(() {
-          _selectedDate = pickedDay;
-          _birthController.text = _dateFormat.format(pickedDay);
-        });
-      }
+    if (pickedDate != null) {
+      setState(() {
+        _selectedDate = pickedDate;
+        _birthController.text = _dateFormat.format(pickedDate);
+      });
     }
   }
 
