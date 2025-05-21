@@ -5,6 +5,9 @@ import 'package:johabon_pwa/models/user_model.dart' as models;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:johabon_pwa/utils/password_util.dart';
+// dart:js는 웹에서만 사용 가능하므로 조건부 임포트
+// ignore: uri_does_not_exist
+import 'dart:js' if (dart.library.io) 'package:johabon_pwa/utils/stub_js.dart' as js;
 
 class AuthProvider with ChangeNotifier {
   bool _isLoggedIn = false;
@@ -28,7 +31,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   // 로그인 처리
-  Future<bool> login(String id, String password) async {
+  Future<Map<String, dynamic>> login(String id, String password) async {
     _isLoading = true;
     notifyListeners();
 
@@ -56,9 +59,18 @@ class AuthProvider with ChangeNotifier {
         // 사용자 정보 저장
         await _saveUserToPrefs();
         
+        // 추가: 세션 정보를 로컬 스토리지에 직접 저장
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_type', user.userType);
+        
         _isLoading = false;
         notifyListeners();
-        return true;
+        return {
+          'success': true,
+          'user_type': user.userType,
+          'user_id': user.userId,
+          'name': user.name
+        };
       }
       
       // Supabase에서 사용자 정보 조회
@@ -66,16 +78,28 @@ class AuthProvider with ChangeNotifier {
           .from('users')
           .select('*')
           .eq('user_id', id)
-          .eq('is_approved', true) // 승인된 사용자만 로그인 가능
+          // is_approved 조건을 제거하여 모든 사용자 조회
           .maybeSingle();
       
       // 사용자가 존재하는 경우
       if (response != null) {
         final userData = response as Map<String, dynamic>;
         final hashedPassword = userData['password'] as String;
+        final isApproved = userData['is_approved'] as bool? ?? false;
         
         // 비밀번호 검증
         if (PasswordUtil.verifyPassword(password, hashedPassword)) {
+          // 승인되지 않은 사용자인 경우
+          if (!isApproved) {
+            _isLoading = false;
+            notifyListeners();
+            return {
+              'success': false,
+              'error': 'not_approved',
+              'message': '아직 승인이 완료되지 않았습니다. 관리자 승인 후 로그인이 가능합니다.'
+            };
+          }
+          
           final user = models.User(
             id: userData['id'].toString(),
             unionId: userData['union_id']?.toString(),
@@ -85,7 +109,7 @@ class AuthProvider with ChangeNotifier {
             phone: userData['phone'] as String?,
             birth: userData['birth'] != null ? DateTime.parse(userData['birth'] as String) : null,
             propertyLocation: userData['property_location'] as String?,
-            isApproved: userData['is_approved'] as bool? ?? false,
+            isApproved: isApproved,
             createdAt: DateTime.parse(userData['created_at'] as String),
           );
           
@@ -98,9 +122,18 @@ class AuthProvider with ChangeNotifier {
           // 사용자 정보 저장
           await _saveUserToPrefs();
           
+          // 추가: 세션 정보를 로컬 스토리지에 직접 저장
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('user_type', user.userType);
+          
           _isLoading = false;
           notifyListeners();
-          return true;
+          return {
+            'success': true,
+            'user_type': user.userType,
+            'user_id': user.userId,
+            'name': user.name
+          };
         }
       }
 
@@ -124,9 +157,18 @@ class AuthProvider with ChangeNotifier {
         // 사용자 정보 저장
         await _saveUserToPrefs();
         
+        // 추가: 세션 정보를 로컬 스토리지에 직접 저장
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_type', user.userType);
+        
         _isLoading = false;
         notifyListeners();
-        return true;
+        return {
+          'success': true,
+          'user_type': user.userType,
+          'user_id': user.userId,
+          'name': user.name
+        };
       } else if (id.startsWith('member')) {
         final user = models.User(
           id: '3',
@@ -146,19 +188,28 @@ class AuthProvider with ChangeNotifier {
         // 사용자 정보 저장
         await _saveUserToPrefs();
         
+        // 추가: 세션 정보를 로컬 스토리지에 직접 저장
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_type', user.userType);
+        
         _isLoading = false;
         notifyListeners();
-        return true;
+        return {
+          'success': true,
+          'user_type': user.userType,
+          'user_id': user.userId,
+          'name': user.name
+        };
       }
 
       // 일치하는 계정이 없을 경우
       _isLoading = false;
       notifyListeners();
-      return false;
+      return {'success': false};
     } catch (e) {
       _isLoading = false;
       notifyListeners();
-      return false;
+      return {'success': false, 'error': e.toString()};
     }
   }
 
@@ -175,6 +226,16 @@ class AuthProvider with ChangeNotifier {
       await prefs.remove('user_data');
       print('[AuthProvider] Removing token from SharedPreferences...');
       await prefs.remove('token');
+      
+      // 추가: 세션 데이터 삭제
+      await prefs.remove('user_type');
+      await prefs.remove('slug');
+      
+      // 웹에서는 localStorage의 데이터도 삭제
+      if (kIsWeb) {
+        js.context.callMethod('eval', 
+          ['localStorage.removeItem("user_type"); localStorage.removeItem("slug");']);
+      }
 
       _isLoggedIn = false;
       _isAdmin = false;

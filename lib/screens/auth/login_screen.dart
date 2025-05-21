@@ -10,10 +10,13 @@ import 'package:johabon_pwa/widgets/common/calendar_dialog.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'dart:js' as js;
+// dart:js는 웹에서만 사용 가능하므로 조건부 임포트
+// ignore: uri_does_not_exist
+import 'dart:js' if (dart.library.io) 'package:johabon_pwa/utils/stub_js.dart' as js;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:johabon_pwa/utils/password_util.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -238,14 +241,28 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     });
 
     try {
-      final success = await Provider.of<AuthProvider>(context, listen: false)
+      // AuthProvider의 login 메서드 호출
+      final result = await Provider.of<AuthProvider>(context, listen: false)
           .login(_idController.text, _passwordController.text);
 
-      if (success) {
+      if (result['success']) {
         if (mounted) {
-          // 슬러그 기반으로 홈 화면으로 이동
+          // 세션에 user_type과 슬러그 저장
+          final userType = result['user_type'];
           final unionProvider = Provider.of<UnionProvider>(context, listen: false);
           final slug = unionProvider.currentUnion?.homepage;
+          
+          // SharedPreferences를 사용해 세션 데이터 저장
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('user_type', userType);
+          await prefs.setString('slug', slug ?? '');
+          
+          if (kIsWeb) {
+            // 웹에서 추가 세션 저장 (로컬 스토리지)
+            js.context.callMethod('eval', 
+              ['localStorage.setItem("user_type", "' + userType + '"); ' +
+               'localStorage.setItem("slug", "' + (slug ?? '') + '");']);
+          }
           
           if (slug != null) {
             // 슬러그/home 형식으로 이동
@@ -267,13 +284,19 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         setState(() {
           _isLoading = false;
         });
-        _showValidationErrorModal('로그인 오류', '로그인에 실패했습니다. 아이디와 비밀번호를 확인해주세요.');
+        
+        // 승인되지 않은 사용자인 경우 특별 메시지 표시
+        if (result['error'] == 'not_approved') {
+          _showValidationErrorModal('승인 대기', result['message'] ?? '아직 승인이 완료되지 않았습니다.');
+        } else {
+          _showValidationErrorModal('로그인 오류', '아이디 또는 비밀번호가 일치하지 않습니다. 다시 확인해주세요.');
+        }
       }
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
-      _showValidationErrorModal('오류', '오류가 발생했습니다. 다시 시도해주세요.');
+      _showValidationErrorModal('오류', '로그인 처리 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
 
@@ -657,15 +680,26 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       readOnly: true,
                       onTap: () {
                         if (kIsWeb) {
-                          js.context.callMethod('openKakaoPostcode');
-                          js.context.callMethod('setupAddressSelectedListener', [
-                            js.allowInterop((String address) {
-                              setState(() {
-                                _registerAddressController.text = address;
-                              });
-                              js.context.callMethod('tearDownAddressSelectedListener');
-                            })
-                          ]);
+                          js.context.callMethod('eval', ['openKakaoPostcode()']);
+                          
+                          // 함수를 문자열로 만들어서 eval로 실행
+                          final setupListenerJS = '''
+                            function addressSelectedHandler(address) {
+                              window.flutterAddressCallback(address);
+                              tearDownAddressSelectedListener();
+                            }
+                            setupAddressSelectedListener(addressSelectedHandler);
+                          ''';
+                          
+                          // 콜백 함수 등록
+                          js.context['flutterAddressCallback'] = js.allowInterop((String address) {
+                            setState(() {
+                              _registerAddressController.text = address;
+                            });
+                          });
+                          
+                          // 함수 실행
+                          js.context.callMethod('eval', [setupListenerJS]);
                         } else {
                           AddressSearchDialog.show(
                             context: context,
