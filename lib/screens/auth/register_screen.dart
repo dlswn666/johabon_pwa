@@ -34,6 +34,89 @@ class _RegisterScreenState extends State<RegisterScreen> {
   
   final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
   DateTime? _selectedDate;
+  
+  // 유효성 검사 오류 모달 다이얼로그 표시 함수
+  void _showValidationErrorModal(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          title: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFE53935),
+            ),
+          ),
+          content: Text(
+            message,
+            style: const TextStyle(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                '확인',
+                style: TextStyle(
+                  color: Color(0xFFE53935),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // 성공 모달 다이얼로그 표시 함수
+  void _showSuccessModal(String title, String message, [Function? onConfirm]) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          title: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF4CAF50),
+            ),
+          ),
+          content: Text(
+            message,
+            style: const TextStyle(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                if (onConfirm != null) {
+                  onConfirm();
+                }
+              },
+              child: const Text(
+                '확인',
+                style: TextStyle(
+                  color: Color(0xFF4CAF50),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   void initState() {
@@ -108,16 +191,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     
     // 유효성 검사
     if (username.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('아이디를 입력해주세요.'), backgroundColor: Colors.red),
-      );
+      _showValidationErrorModal('아이디 오류', '아이디를 입력해주세요.');
       return;
     }
     
     if (username.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('아이디는 6자 이상이어야 합니다.'), backgroundColor: Colors.red),
-      );
+      _showValidationErrorModal('아이디 오류', '아이디는 6자 이상이어야 합니다.');
       return;
     }
     
@@ -155,251 +234,158 @@ class _RegisterScreenState extends State<RegisterScreen> {
       // 결과에 따른 메시지 표시
       if (_isIdAvailable) {
         // 사용 가능한 아이디일 경우 모달 다이얼로그 표시
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              title: const Text(
-                '아이디 사용 가능',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF4CAF50),
-                ),
-              ),
-              content: const Text(
-                '입력하신 아이디는 사용 가능합니다.\n이 아이디로 가입을 진행하시겠습니까?',
-                style: TextStyle(fontSize: 16),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text(
-                    '확인',
-                    style: TextStyle(
-                      color: Color(0xFF4CAF50),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
+        _showSuccessModal(
+          '아이디 사용 가능',
+          '입력하신 아이디는 사용 가능합니다.\n이 아이디로 가입을 진행하시겠습니까?'
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('이미 사용 중인 아이디입니다.'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showValidationErrorModal('아이디 중복', '이미 사용 중인 아이디입니다.');
       }
     } catch (e) {
       // 로딩 다이얼로그 닫기
       if (context.mounted) Navigator.of(context).pop();
       
       // 오류 메시지
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('중복 확인 중 오류가 발생했습니다: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showValidationErrorModal('오류', '중복 확인 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
 
   Future<void> _register() async {
-    // 아이디 중복 확인 여부 체크
-    if (!_isIdChecked || !_isIdAvailable) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('아이디 중복 확인을 먼저 진행해주세요.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    // 각 필드별 유효성 검사
+    if (_idController.text.isEmpty) {
+      _showValidationErrorModal('회원가입 오류', '아이디를 입력해주세요.');
       return;
     }
     
-    if (_formKey.currentState!.validate()) {
+    if (_idController.text.length < 6) {
+      _showValidationErrorModal('회원가입 오류', '아이디는 6자 이상이어야 합니다.');
+      return;
+    }
+    
+    // 아이디 중복 확인 여부 체크
+    if (!_isIdChecked || !_isIdAvailable) {
+      _showValidationErrorModal('회원가입 오류', '아이디 중복 확인을 먼저 진행해주세요.');
+      return;
+    }
+    
+    if (_passwordController.text.isEmpty) {
+      _showValidationErrorModal('회원가입 오류', '비밀번호를 입력해주세요.');
+      return;
+    }
+    
+    if (_passwordController.text.length < 10) {
+      _showValidationErrorModal('회원가입 오류', '비밀번호는 10자 이상이어야 합니다.');
+      return;
+    }
+    
+    if (_passwordConfirmController.text.isEmpty) {
+      _showValidationErrorModal('회원가입 오류', '비밀번호 확인을 입력해주세요.');
+      return;
+    }
+    
+    if (_passwordController.text != _passwordConfirmController.text) {
+      _showValidationErrorModal('회원가입 오류', '비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    
+    if (_nameController.text.isEmpty) {
+      _showValidationErrorModal('회원가입 오류', '이름을 입력해주세요.');
+      return;
+    }
+    
+    if (_phoneController.text.isEmpty) {
+      _showValidationErrorModal('회원가입 오류', '핸드폰 번호를 입력해주세요.');
+      return;
+    }
+    
+    if (_birthController.text.isEmpty) {
+      _showValidationErrorModal('회원가입 오류', '생년월일을 선택해주세요.');
+      return;
+    }
+    
+    if (_addressController.text.isEmpty) {
+      _showValidationErrorModal('회원가입 오류', '관리소재지를 입력해주세요.');
+      return;
+    }
+    
+    try {
       String fullAddress = _addressController.text;
       if (_detailAddressController.text.isNotEmpty) {
         fullAddress += " ${_detailAddressController.text}";
       }
       
-      try {
-        // 비밀번호 암호화
-        final hashedPassword = PasswordUtil.hashPassword(_passwordController.text);
-        
-        // 조합 정보 가져오기
-        final homepage = Provider.of<UnionProvider>(context, listen: false).currentUnion?.homepage;
-        
-        if (homepage == null) {
-          throw Exception('조합 homepage 주소를 찾을 수 없습니다.');
-        }
-        
-        final unionResponse = await Supabase.instance.client.from('unions').select('id').eq('homepage', homepage).single();
-        
-        if (unionResponse == null) {
-          throw Exception('조합 정보를 찾을 수 없습니다.');
-        }
-        
-        final unionId = unionResponse['id'];
-        
-        // Supabase users 테이블에 데이터 저장
-        Supabase.instance.client.from('users').insert({
-          'user_id': _idController.text,
-          'password': hashedPassword, // 암호화된 비밀번호 저장
-          'name': _nameController.text,
-          'phone': _phoneController.text,
-          'birth': _birthController.text,
-          'property_location': fullAddress,
-          'user_type': 'member',
-          'is_approved': false,
-          'created_at': DateTime.now().toIso8601String(),
-          'union_id': unionId,
-        }).select().then((_) {
-          if (mounted) {
-            // 성공 메시지 모달 표시
-            showDialog(
-              context: context,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  title: const Text(
-                    '회원가입 완료',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF424242),
-                    ),
-                  ),
-                  content: const Text(
-                    '회원 가입이 완료되었습니다.\n관리자 승인 후 로그인 가능합니다.',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        
-                        // 슬러그 기반으로 로그인 페이지로 이동
-                        final unionProvider = Provider.of<UnionProvider>(context, listen: false);
-                        final slug = unionProvider.currentUnion?.homepage;
-                        
-                        if (slug != null) {
-                          // 슬러그/login 경로로 이동
-                          Navigator.pushReplacementNamed(context, '/$slug/${AppRoutes.login}');
-                        } else {
-                          // 슬러그가 없는 경우 이전 화면으로 돌아가기
-                          if (Navigator.canPop(context)) {
-                            Navigator.of(context).pop();
-                          } else {
-                            // 이전 화면이 없으면 404 페이지로 이동
-                            Navigator.pushReplacementNamed(context, AppRoutes.notFound);
-                          }
-                        }
-                      },
-                      child: const Text(
-                        '확인',
-                        style: TextStyle(
-                          color: Color(0xFF4CAF50),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            );
-          }
-        }).catchError((error) {
-          if (mounted) {
-            // 실패 메시지 모달 표시
-            showDialog(
-              context: context,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  title: const Text(
-                    '회원가입 실패',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFE53935),
-                    ),
-                  ),
-                  content: const Text(
-                    '회원 가입에 실패했습니다.\n시스템 관리자에게 문의하세요.',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: const Text(
-                        '확인',
-                        style: TextStyle(
-                          color: Color(0xFFE53935),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            );
-          }
-        });
-      } catch (error) {
+      // 비밀번호 암호화
+      final hashedPassword = PasswordUtil.hashPassword(_passwordController.text);
+      
+      // 조합 정보 가져오기
+      final homepage = Provider.of<UnionProvider>(context, listen: false).currentUnion?.homepage;
+      
+      if (homepage == null) {
+        throw Exception('조합 homepage 주소를 찾을 수 없습니다.');
+      }
+      
+      final unionResponse = await Supabase.instance.client.from('unions').select('id').eq('homepage', homepage).single();
+      
+      if (unionResponse == null) {
+        throw Exception('조합 정보를 찾을 수 없습니다.');
+      }
+      
+      final unionId = unionResponse['id'];
+      
+      // Supabase users 테이블에 데이터 저장
+      Supabase.instance.client.from('users').insert({
+        'user_id': _idController.text,
+        'password': hashedPassword, // 암호화된 비밀번호 저장
+        'name': _nameController.text,
+        'phone': _phoneController.text,
+        'birth': _birthController.text,
+        'property_location': fullAddress,
+        'user_type': 'member',
+        'is_approved': false,
+        'created_at': DateTime.now().toIso8601String(),
+        'union_id': unionId,
+      }).select().then((_) {
         if (mounted) {
-          // 실패 메시지 모달 표시
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                title: const Text(
-                  '회원가입 실패',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFE53935),
-                  ),
-                ),
-                content: const Text(
-                  '회원 가입에 실패했습니다.\n시스템 관리자에게 문의하세요.',
-                  style: TextStyle(fontSize: 16),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                    child: const Text(
-                      '확인',
-                      style: TextStyle(
-                        color: Color(0xFFE53935),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
+          // 성공 메시지 모달 표시
+          _showSuccessModal(
+            '회원가입 완료',
+            '회원 가입이 완료되었습니다.\n관리자 승인 후 로그인 가능합니다.',
+            () {
+              // 슬러그 기반으로 로그인 페이지로 이동
+              final unionProvider = Provider.of<UnionProvider>(context, listen: false);
+              final slug = unionProvider.currentUnion?.homepage;
+              
+              if (slug != null) {
+                // 슬러그/login 경로로 이동
+                Navigator.pushReplacementNamed(context, '/$slug/${AppRoutes.login}');
+              } else {
+                // 슬러그가 없는 경우 이전 화면으로 돌아가기
+                if (Navigator.canPop(context)) {
+                  Navigator.of(context).pop();
+                } else {
+                  // 이전 화면이 없으면 404 페이지로 이동
+                  Navigator.pushReplacementNamed(context, AppRoutes.notFound);
+                }
+              }
+            }
           );
         }
+      }).catchError((error) {
+        if (mounted) {
+          // 실패 메시지 모달 표시
+          _showValidationErrorModal(
+            '회원가입 실패',
+            '회원 가입에 실패했습니다.\n시스템 관리자에게 문의하세요.'
+          );
+        }
+      });
+    } catch (error) {
+      if (mounted) {
+        // 실패 메시지 모달 표시
+        _showValidationErrorModal(
+          '회원가입 실패',
+          '회원 가입에 실패했습니다.\n시스템 관리자에게 문의하세요.'
+        );
       }
     }
   }
@@ -412,7 +398,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     TextInputType? keyboardType,
     bool obscureText = false,
     bool readOnly = false,
-    FormFieldValidator<String>? validator,
+    FormFieldValidator<String>? validator, // 사용하지 않지만 호환성을 위해 유지
     VoidCallback? onTap,
     Widget? suffix,
     FocusNode? focusNode,
@@ -479,7 +465,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       contentPadding: const EdgeInsets.symmetric(vertical: 10),
                       isDense: true,
                     ),
-                    validator: validator,
+                    validator: null, // 인라인 validator 제거
                   ),
                 ),
                 if (suffix != null) ...[
@@ -543,7 +529,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     contentPadding: const EdgeInsets.symmetric(vertical: 10),
                     isDense: true,
                   ),
-                  validator: validator,
+                  validator: null, // 인라인 validator 제거
                 ),
               ),
               if (suffix != null) ...[
@@ -603,11 +589,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     label: '아이디',
                     controller: _idController,
                     hintText: '아이디를 입력하세요. (6자 이상)',
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return '아이디를 입력해주세요';
-                      if (value.length < 6) return '아이디는 6자 이상이어야 합니다.';
-                      return null;
-                    },
+                    validator: null,
                     suffix: SizedBox(
                       width: 90,
                       height: 36,
@@ -640,11 +622,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: _passwordController,
                     hintText: '비밀번호를 입력하세요. (10자 이상)',
                     obscureText: true,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return '비밀번호를 입력해주세요';
-                      if (value.length < 10) return '비밀번호는 10자 이상이어야 합니다';
-                      return null;
-                    },
+                    validator: null,
                   ),
                   const SizedBox(height: 16),
                   
@@ -653,11 +631,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: _passwordConfirmController,
                     hintText: '비밀번호를 다시 입력해주세요.',
                     obscureText: true,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return '비밀번호 확인을 입력해주세요';
-                      if (value != _passwordController.text) return '비밀번호가 일치하지 않습니다';
-                      return null;
-                    },
+                    validator: null,
                   ),
                   const SizedBox(height: 16),
 
@@ -665,10 +639,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     label: '이름(소유자)',
                     controller: _nameController,
                     hintText: '이름을 입력해주세요.',
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return '이름을 입력해주세요';
-                      return null;
-                    },
+                    validator: null,
                   ),
                   const SizedBox(height: 16),
 
@@ -677,10 +648,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: _phoneController,
                     hintText: '연락 가능한 핸드폰 번호를 입력해주세요.',
                     keyboardType: TextInputType.phone,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return '핸드폰 번호를 입력해주세요';
-                      return null;
-                    },
+                    validator: null,
                   ),
                   const SizedBox(height: 16),
 
@@ -690,10 +658,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     hintText: '1900.00.00',
                     readOnly: true,
                     onTap: () => _selectDate(context),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return '생년월일을 선택해주세요';
-                      return null;
-                    },
+                    validator: null,
                   ),
                   const SizedBox(height: 16),
 
@@ -731,10 +696,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         );
                       }
                     },
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return '관리소재지를 입력해주세요';
-                      return null;
-                    },
+                    validator: null,
                   ),
                   const SizedBox(height: 16),
 
@@ -742,13 +704,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     label: '상세주소',
                     controller: _detailAddressController,
                     hintText: '상세주소를 입력하세요.',
-                    validator: (value) {
-                      // 상세주소는 선택 사항일 수 있으므로, 필요에 따라 유효성 검사 수정
-                      // if (value == null || value.isEmpty) {
-                      //   return '상세주소를 입력해주세요';
-                      // }
-                      return null;
-                    },
+                    validator: null,
                   ),
                   const SizedBox(height: 30),
                   
