@@ -7,6 +7,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'dart:js' as js;
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:johabon_pwa/utils/password_util.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -26,8 +28,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _addressController = TextEditingController();
   final _detailAddressController = TextEditingController();
   
+  // 아이디 중복 확인 상태
+  bool _isIdChecked = false;
+  bool _isIdAvailable = false;
+  
   final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
   DateTime? _selectedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    // 아이디 입력 필드의 값이 변경될 때마다 중복 확인 상태 리셋
+    _idController.addListener(() {
+      if (_isIdChecked) {
+        setState(() {
+          _isIdChecked = false;
+          _isIdAvailable = false;
+        });
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -82,37 +102,303 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  void _register() {
+  // 아이디 중복 확인 메소드
+  Future<void> _checkUsernameExists() async {
+    final username = _idController.text.trim();
+    
+    // 유효성 검사
+    if (username.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('아이디를 입력해주세요.'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    
+    if (username.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('아이디는 6자 이상이어야 합니다.'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    
+    try {
+      // 로딩 표시
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+      );
+      
+      // Supabase에서 아이디 중복 확인
+      final result = await Supabase.instance.client
+          .from('users')
+          .select('*')
+          .eq('user_id', username)
+          .maybeSingle();
+      
+      // 로딩 다이얼로그 닫기
+      Navigator.of(context).pop();
+      
+      setState(() {
+        _isIdChecked = true;
+        _isIdAvailable = result == null; // 결과가 없으면 사용 가능한 아이디
+      });
+      
+      // 결과에 따른 메시지 표시
+      if (_isIdAvailable) {
+        // 사용 가능한 아이디일 경우 모달 다이얼로그 표시
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              title: const Text(
+                '아이디 사용 가능',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF4CAF50),
+                ),
+              ),
+              content: const Text(
+                '입력하신 아이디는 사용 가능합니다.\n이 아이디로 가입을 진행하시겠습니까?',
+                style: TextStyle(fontSize: 16),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text(
+                    '확인',
+                    style: TextStyle(
+                      color: Color(0xFF4CAF50),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('이미 사용 중인 아이디입니다.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      // 로딩 다이얼로그 닫기
+      if (context.mounted) Navigator.of(context).pop();
+      
+      // 오류 메시지
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('중복 확인 중 오류가 발생했습니다: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _register() async {
+    // 아이디 중복 확인 여부 체크
+    if (!_isIdChecked || !_isIdAvailable) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('아이디 중복 확인을 먼저 진행해주세요.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
     if (_formKey.currentState!.validate()) {
       String fullAddress = _addressController.text;
       if (_detailAddressController.text.isNotEmpty) {
-        fullAddress += ", ${_detailAddressController.text}";
+        fullAddress += " ${_detailAddressController.text}";
       }
       
-      // TODO: 실제 API 연동 로직
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('회원가입 요청이 완료되었습니다. 관리자 승인 후 이용 가능합니다.'),
-            backgroundColor: Colors.green,
-          ),
-        );
+      try {
+        // 비밀번호 암호화
+        final hashedPassword = PasswordUtil.hashPassword(_passwordController.text);
         
-        // 슬러그 기반으로 로그인 페이지로 이동
-        final unionProvider = Provider.of<UnionProvider>(context, listen: false);
-        final slug = unionProvider.currentUnion?.homepage;
+        // 조합 정보 가져오기
+        final homepage = Provider.of<UnionProvider>(context, listen: false).currentUnion?.homepage;
         
-        if (slug != null) {
-          // 슬러그/login 경로로 이동
-          Navigator.pushReplacementNamed(context, '/$slug/${AppRoutes.login}');
-        } else {
-          // 슬러그가 없는 경우 이전 화면으로 돌아가기
-          if (Navigator.canPop(context)) {
-            Navigator.of(context).pop();
-          } else {
-            // 이전 화면이 없으면 404 페이지로 이동
-            Navigator.pushReplacementNamed(context, AppRoutes.notFound);
+        if (homepage == null) {
+          throw Exception('조합 homepage 주소를 찾을 수 없습니다.');
+        }
+        
+        final unionResponse = await Supabase.instance.client.from('unions').select('id').eq('homepage', homepage).single();
+        
+        if (unionResponse == null) {
+          throw Exception('조합 정보를 찾을 수 없습니다.');
+        }
+        
+        final unionId = unionResponse['id'];
+        
+        // Supabase users 테이블에 데이터 저장
+        Supabase.instance.client.from('users').insert({
+          'user_id': _idController.text,
+          'password': hashedPassword, // 암호화된 비밀번호 저장
+          'name': _nameController.text,
+          'phone': _phoneController.text,
+          'birth': _birthController.text,
+          'property_location': fullAddress,
+          'user_type': 'member',
+          'is_approved': false,
+          'created_at': DateTime.now().toIso8601String(),
+          'union_id': unionId,
+        }).select().then((_) {
+          if (mounted) {
+            // 성공 메시지 모달 표시
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  title: const Text(
+                    '회원가입 완료',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF424242),
+                    ),
+                  ),
+                  content: const Text(
+                    '회원 가입이 완료되었습니다.\n관리자 승인 후 로그인 가능합니다.',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        
+                        // 슬러그 기반으로 로그인 페이지로 이동
+                        final unionProvider = Provider.of<UnionProvider>(context, listen: false);
+                        final slug = unionProvider.currentUnion?.homepage;
+                        
+                        if (slug != null) {
+                          // 슬러그/login 경로로 이동
+                          Navigator.pushReplacementNamed(context, '/$slug/${AppRoutes.login}');
+                        } else {
+                          // 슬러그가 없는 경우 이전 화면으로 돌아가기
+                          if (Navigator.canPop(context)) {
+                            Navigator.of(context).pop();
+                          } else {
+                            // 이전 화면이 없으면 404 페이지로 이동
+                            Navigator.pushReplacementNamed(context, AppRoutes.notFound);
+                          }
+                        }
+                      },
+                      child: const Text(
+                        '확인',
+                        style: TextStyle(
+                          color: Color(0xFF4CAF50),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
           }
+        }).catchError((error) {
+          if (mounted) {
+            // 실패 메시지 모달 표시
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  title: const Text(
+                    '회원가입 실패',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFE53935),
+                    ),
+                  ),
+                  content: const Text(
+                    '회원 가입에 실패했습니다.\n시스템 관리자에게 문의하세요.',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text(
+                        '확인',
+                        style: TextStyle(
+                          color: Color(0xFFE53935),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+          }
+        });
+      } catch (error) {
+        if (mounted) {
+          // 실패 메시지 모달 표시
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                title: const Text(
+                  '회원가입 실패',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFE53935),
+                  ),
+                ),
+                content: const Text(
+                  '회원 가입에 실패했습니다.\n시스템 관리자에게 문의하세요.',
+                  style: TextStyle(fontSize: 16),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text(
+                      '확인',
+                      style: TextStyle(
+                        color: Color(0xFFE53935),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
         }
       }
     }
@@ -326,12 +612,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       width: 90,
                       height: 36,
                       child: OutlinedButton(
-                        onPressed: () {
-                          // TODO: 아이디 중복 확인 로직
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('아이디 중복 확인 기능 구현 예정')),
-                          );
-                        },
+                        onPressed: _checkUsernameExists,
                         style: OutlinedButton.styleFrom(
                           padding: EdgeInsets.zero,
                           side: BorderSide(color: Colors.grey.shade400),
@@ -343,7 +624,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           '중복확인',
                           style: TextStyle(
                             fontSize: 13,
-                            color: Colors.grey.shade700,
+                            color: _isIdChecked && _isIdAvailable 
+                                ? Colors.green 
+                                : Colors.grey.shade700,
                             fontFamily: 'Wanted Sans',
                           ),
                         ),

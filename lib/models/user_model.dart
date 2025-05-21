@@ -1,35 +1,41 @@
 class User {
-  final String id;
-  final String name;
-  final String email;
-  final String role; // 'admin', 'member', 'guest'
-  final DateTime createdAt;
-  String? phoneNumber;
-  String? address;
-  bool? isApproved;
+  final String id;       // UUID
+  final String? unionId; // UUID reference
+  final String userType; // 'admin' 또는 'member'
+  final String userId;   // 로그인용 아이디
+  final String name;     // 사용자 실명
+  final String? phone;   // 전화번호
+  final DateTime? birth; // 생년월일
+  final String? propertyLocation; // 권리 소재지
+  final bool isApproved; // 관리자 승인 여부
+  final DateTime createdAt; // 생성 일시
 
   User({
     required this.id,
+    this.unionId,
+    required this.userType,
+    required this.userId,
     required this.name,
-    required this.email,
-    required this.role,
+    this.phone,
+    this.birth,
+    this.propertyLocation,
+    required this.isApproved,
     required this.createdAt,
-    this.phoneNumber,
-    this.address,
-    this.isApproved,
   });
 
   // JSON에서 User 객체로 변환
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'],
+      unionId: json['union_id'],
+      userType: json['user_type'] ?? 'member',
+      userId: json['user_id'],
       name: json['name'],
-      email: json['email'],
-      role: json['role'],
-      createdAt: DateTime.parse(json['createdAt']),
-      phoneNumber: json['phoneNumber'],
-      address: json['address'],
-      isApproved: json['isApproved'],
+      phone: json['phone'],
+      birth: json['birth'] != null ? DateTime.parse(json['birth']) : null,
+      propertyLocation: json['property_location'],
+      isApproved: json['is_approved'] ?? false,
+      createdAt: DateTime.parse(json['created_at']),
     );
   }
 
@@ -37,36 +43,42 @@ class User {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'union_id': unionId,
+      'user_type': userType,
+      'user_id': userId,
       'name': name,
-      'email': email,
-      'role': role,
-      'createdAt': createdAt.toIso8601String(),
-      'phoneNumber': phoneNumber,
-      'address': address,
-      'isApproved': isApproved,
+      'phone': phone,
+      'birth': birth?.toIso8601String(),
+      'property_location': propertyLocation,
+      'is_approved': isApproved,
+      'created_at': createdAt.toIso8601String(),
     };
   }
 
   // User 객체 복사하여 수정된 버전 반환
   User copyWith({
     String? id,
+    String? unionId,
+    String? userType,
+    String? userId,
     String? name,
-    String? email,
-    String? role,
-    DateTime? createdAt,
-    String? phoneNumber,
-    String? address,
+    String? phone,
+    DateTime? birth,
+    String? propertyLocation,
     bool? isApproved,
+    DateTime? createdAt,
   }) {
     return User(
       id: id ?? this.id,
+      unionId: unionId ?? this.unionId,
+      userType: userType ?? this.userType,
+      userId: userId ?? this.userId,
       name: name ?? this.name,
-      email: email ?? this.email,
-      role: role ?? this.role,
-      createdAt: createdAt ?? this.createdAt,
-      phoneNumber: phoneNumber ?? this.phoneNumber,
-      address: address ?? this.address,
+      phone: phone ?? this.phone,
+      birth: birth ?? this.birth,
+      propertyLocation: propertyLocation ?? this.propertyLocation,
       isApproved: isApproved ?? this.isApproved,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 } 

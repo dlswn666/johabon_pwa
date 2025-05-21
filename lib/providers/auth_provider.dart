@@ -1,14 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:johabon_pwa/models/user_model.dart';
+import 'package:johabon_pwa/models/user_model.dart' as models;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:johabon_pwa/utils/password_util.dart';
 
 class AuthProvider with ChangeNotifier {
   bool _isLoggedIn = false;
   bool _isAdmin = false;
   bool _isMember = false;
-  User? _currentUser;
+  models.User? _currentUser;
   bool _isLoading = false;
   String? _token;
 
@@ -16,7 +18,7 @@ class AuthProvider with ChangeNotifier {
   bool get isLoggedIn => _isLoggedIn;
   bool get isAdmin => _isAdmin;
   bool get isMember => _isMember;
-  User? get currentUser => _currentUser;
+  models.User? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
   String? get token => _token;
 
@@ -36,18 +38,19 @@ class AuthProvider with ChangeNotifier {
       
       // 테스트 계정 확인
       if (id == 'test123' && password == '123') {
-        final user = User(
+        final user = models.User(
           id: '1',
+          userId: 'test123',
           name: '테스트 사용자',
-          email: 'test123@example.com',
-          role: 'member',
+          userType: 'member',
+          isApproved: true,
           createdAt: DateTime.now(),
         );
         
         _currentUser = user;
         _isLoggedIn = true;
-        _isAdmin = user.role == 'admin';
-        _isMember = user.role == 'member' || user.role == 'admin';
+        _isAdmin = user.userType == 'admin';
+        _isMember = user.userType == 'member' || user.userType == 'admin';
         _token = 'dummy_token_${user.id}';
         
         // 사용자 정보 저장
@@ -58,13 +61,57 @@ class AuthProvider with ChangeNotifier {
         return true;
       }
       
-      // 임시 구현: 이메일이 "admin"으로 시작하면 관리자, "member"로 시작하면 조합원으로 판단
+      // Supabase에서 사용자 정보 조회
+      final response = await Supabase.instance.client
+          .from('users')
+          .select('*')
+          .eq('user_id', id)
+          .eq('is_approved', true) // 승인된 사용자만 로그인 가능
+          .maybeSingle();
+      
+      // 사용자가 존재하는 경우
+      if (response != null) {
+        final userData = response as Map<String, dynamic>;
+        final hashedPassword = userData['password'] as String;
+        
+        // 비밀번호 검증
+        if (PasswordUtil.verifyPassword(password, hashedPassword)) {
+          final user = models.User(
+            id: userData['id'].toString(),
+            unionId: userData['union_id']?.toString(),
+            userId: userData['user_id'] as String,
+            userType: userData['user_type'] as String,
+            name: userData['name'] as String,
+            phone: userData['phone'] as String?,
+            birth: userData['birth'] != null ? DateTime.parse(userData['birth'] as String) : null,
+            propertyLocation: userData['property_location'] as String?,
+            isApproved: userData['is_approved'] as bool? ?? false,
+            createdAt: DateTime.parse(userData['created_at'] as String),
+          );
+          
+          _currentUser = user;
+          _isLoggedIn = true;
+          _isAdmin = user.userType == 'admin';
+          _isMember = user.userType == 'member' || user.userType == 'admin';
+          _token = 'user_token_${user.id}'; // 실제 토큰 관리는 별도로 구현 필요
+          
+          // 사용자 정보 저장
+          await _saveUserToPrefs();
+          
+          _isLoading = false;
+          notifyListeners();
+          return true;
+        }
+      }
+
+      // 여기까지 왔다면 임시 구현된 아이디 체크 (테스트용)
       if (id.startsWith('admin')) {
-        final user = User(
+        final user = models.User(
           id: '2',
+          userId: id,
           name: '관리자',
-          email: '$id@example.com',
-          role: 'admin',
+          userType: 'admin',
+          isApproved: true,
           createdAt: DateTime.now(),
         );
         
@@ -81,11 +128,12 @@ class AuthProvider with ChangeNotifier {
         notifyListeners();
         return true;
       } else if (id.startsWith('member')) {
-        final user = User(
+        final user = models.User(
           id: '3',
+          userId: id,
           name: '조합원',
-          email: '$id@example.com',
-          role: 'member',
+          userType: 'member',
+          isApproved: true,
           createdAt: DateTime.now(),
         );
         
@@ -178,8 +226,10 @@ class AuthProvider with ChangeNotifier {
     final userData = json.encode({
       'id': _currentUser!.id,
       'name': _currentUser!.name,
-      'email': _currentUser!.email,
-      'role': _currentUser!.role,
+      'userId': _currentUser!.userId,
+      'userType': _currentUser!.userType,
+      'unionId': _currentUser!.unionId,
+      'isApproved': _currentUser!.isApproved,
       'createdAt': _currentUser!.createdAt.toIso8601String(),
     });
 
@@ -196,18 +246,20 @@ class AuthProvider with ChangeNotifier {
     if (userData == null) return;
 
     final extractedUserData = json.decode(userData) as Map<String, dynamic>;
-    final user = User(
+    final user = models.User(
       id: extractedUserData['id'],
       name: extractedUserData['name'],
-      email: extractedUserData['email'],
-      role: extractedUserData['role'],
-      createdAt: DateTime.parse(extractedUserData['createdAt']),
+      userId: extractedUserData['userId'] ?? extractedUserData['email'], // 하위 호환성
+      userType: extractedUserData['userType'] ?? extractedUserData['role'], // 하위 호환성
+      unionId: extractedUserData['unionId'],
+      isApproved: extractedUserData['isApproved'] ?? true,
+      createdAt: DateTime.parse(extractedUserData['createdAt'] ?? extractedUserData['created_at']),
     );
 
     _currentUser = user;
     _isLoggedIn = true;
-    _isAdmin = user.role == 'admin';
-    _isMember = user.role == 'member' || user.role == 'admin';
+    _isAdmin = user.userType == 'admin';
+    _isMember = user.userType == 'member' || user.userType == 'admin';
     _token = prefs.getString('token');
 
     notifyListeners();
