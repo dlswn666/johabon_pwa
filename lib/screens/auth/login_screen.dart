@@ -67,9 +67,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   void initState() {
     super.initState();
     
-    _idController.text = 'test123';
-    _passwordController.text = '123';
-    
     // 아이디 입력 필드의 값이 변경될 때마다 중복 확인 상태 리셋
     _registerIdController.addListener(() {
       if (_isIdChecked) {
@@ -1271,41 +1268,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               ),
             ],
           ),
-          
-          // 테스트 계정 안내 (디자인 일관성을 위해 일단 유지, 필요시 제거 또는 스타일 변경)
-          const SizedBox(height: 30),
-          if (kDebugMode) // 디버그 모드에서만 보이도록
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100.withOpacity(0.8),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              // ... (기존 테스트 계정 정보 내용) ...
-              child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '테스트 계정 정보',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                     color: Color(0xFF424242),
-                  ),
-                ),
-                SizedBox(height: 5),
-                Text(
-                  'ID: test123',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF424242)),
-                ),
-                Text(
-                  'PW: 123',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF424242)),
-                ),
-              ],
-            ),
-            ),
         ],
       ),
     );

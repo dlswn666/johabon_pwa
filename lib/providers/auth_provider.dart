@@ -39,40 +39,6 @@ class AuthProvider with ChangeNotifier {
       // 1초 딜레이 (UI에서 로딩 표시를 위해)
       await Future.delayed(const Duration(seconds: 1));
       
-      // 테스트 계정 확인
-      if (id == 'test123' && password == '123') {
-        final user = models.User(
-          id: '1',
-          userId: 'test123',
-          name: '테스트 사용자',
-          userType: 'member',
-          isApproved: true,
-          createdAt: DateTime.now(),
-        );
-        
-        _currentUser = user;
-        _isLoggedIn = true;
-        _isAdmin = user.userType == 'admin';
-        _isMember = user.userType == 'member' || user.userType == 'admin';
-        _token = 'dummy_token_${user.id}';
-        
-        // 사용자 정보 저장
-        await _saveUserToPrefs();
-        
-        // 추가: 세션 정보를 로컬 스토리지에 직접 저장
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('user_type', user.userType);
-        
-        _isLoading = false;
-        notifyListeners();
-        return {
-          'success': true,
-          'user_type': user.userType,
-          'user_id': user.userId,
-          'name': user.name
-        };
-      }
-      
       // Supabase에서 사용자 정보 조회
       final response = await Supabase.instance.client
           .from('users')
@@ -135,71 +101,6 @@ class AuthProvider with ChangeNotifier {
             'name': user.name
           };
         }
-      }
-
-      // 여기까지 왔다면 임시 구현된 아이디 체크 (테스트용)
-      if (id.startsWith('admin')) {
-        final user = models.User(
-          id: '2',
-          userId: id,
-          name: '관리자',
-          userType: 'admin',
-          isApproved: true,
-          createdAt: DateTime.now(),
-        );
-        
-        _currentUser = user;
-        _isLoggedIn = true;
-        _isAdmin = true;
-        _isMember = true;
-        _token = 'dummy_token_${user.id}';
-        
-        // 사용자 정보 저장
-        await _saveUserToPrefs();
-        
-        // 추가: 세션 정보를 로컬 스토리지에 직접 저장
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('user_type', user.userType);
-        
-        _isLoading = false;
-        notifyListeners();
-        return {
-          'success': true,
-          'user_type': user.userType,
-          'user_id': user.userId,
-          'name': user.name
-        };
-      } else if (id.startsWith('member')) {
-        final user = models.User(
-          id: '3',
-          userId: id,
-          name: '조합원',
-          userType: 'member',
-          isApproved: true,
-          createdAt: DateTime.now(),
-        );
-        
-        _currentUser = user;
-        _isLoggedIn = true;
-        _isAdmin = false;
-        _isMember = true;
-        _token = 'dummy_token_${user.id}';
-        
-        // 사용자 정보 저장
-        await _saveUserToPrefs();
-        
-        // 추가: 세션 정보를 로컬 스토리지에 직접 저장
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('user_type', user.userType);
-        
-        _isLoading = false;
-        notifyListeners();
-        return {
-          'success': true,
-          'user_type': user.userType,
-          'user_id': user.userId,
-          'name': user.name
-        };
       }
 
       // 일치하는 계정이 없을 경우
