@@ -152,7 +152,7 @@ class _ListTemplateWidgetState extends State<ListTemplateWidget> {
                                     fontFamily: 'Wanted Sans',
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
-                                    color: Colors.white,
+                                    color: Color(0xFF22675F),
                                   ),
                                 ),
                               ],

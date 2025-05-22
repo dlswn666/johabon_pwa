@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:johabon_pwa/widgets/layout/content_layout_template.dart';
 import 'package:johabon_pwa/widgets/common/ad_banner_widget.dart';
 import 'package:johabon_pwa/utils/responsive_layout.dart';
 import 'package:johabon_pwa/widgets/common/list_template_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:johabon_pwa/screens/community/notice_write_screen.dart';
+// ignore: uri_does_not_exist
+import 'dart:js' if (dart.library.io) 'package:johabon_pwa/utils/stub_js.dart' as js;
 import 'dart:convert';
 
 // NoticeItem 클래스 정의 (ListItemInterface 구현)
@@ -70,8 +74,12 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
 
   // 글쓰기 버튼 클릭 처리
   void _handleWriteButtonTap() {
-    print('글쓰기 버튼 클릭');
-    // 실제로는 여기서 글쓰기 페이지로 이동하게 됩니다.
+    Navigator.push(
+      context, 
+      MaterialPageRoute(
+        builder: (context) => const NoticeWriteScreen(),
+      ),
+    );
   }
 
   // 페이지 데이터 로드 (임시 데이터 생성)

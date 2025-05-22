@@ -20,6 +20,7 @@ import 'package:johabon_pwa/screens/community/company_board_screen.dart';
 import 'package:johabon_pwa/screens/community/gallery_screen.dart';
 import 'package:johabon_pwa/screens/community/info_sharing_screen.dart';
 import 'package:johabon_pwa/screens/community/notice_list_screen.dart';
+import 'package:johabon_pwa/screens/community/notice_write_screen.dart';
 import 'package:johabon_pwa/screens/community/qna_screen.dart';
 import 'package:johabon_pwa/screens/community/share_screen.dart';
 import 'package:johabon_pwa/screens/development/development_info_screen.dart';
@@ -43,6 +44,7 @@ class AppRoutes {
   static const String developmentProcess = 'development/process';
   static const String developmentInfo = 'development/info';
   static const String notice = 'community/notice';
+  static const String noticeWrite = 'community/notice/write';
   static const String qna = 'community/qna';
   static const String share = 'community/share';
   static const String infoSharing = 'community/info-sharing';
@@ -84,6 +86,7 @@ class AppRoutes {
       'developmentProcess': getFullRoute(slug, developmentProcess),
       'developmentInfo': getFullRoute(slug, developmentInfo),
       'notice': getFullRoute(slug, notice),
+      'noticeWrite': getFullRoute(slug, noticeWrite),
       'qna': getFullRoute(slug, qna),
       'share': getFullRoute(slug, share),
       'infoSharing': getFullRoute(slug, infoSharing),
@@ -174,6 +177,8 @@ class AppRoutes {
             pageContent = const DevelopmentInfoScreen(); break;
           case AppRoutes.notice:
             pageContent = const NoticeListScreen(); break;
+          case AppRoutes.noticeWrite:
+            pageContent = const NoticeWriteScreen(); break;
           case AppRoutes.qna:
             pageContent = const QnaScreen(); break;
           case AppRoutes.share:
@@ -360,6 +365,8 @@ class AppRoutes {
         pageContent = const DevelopmentInfoScreen(); break;
       case AppRoutes.notice:
         pageContent = const NoticeListScreen(); break;
+      case AppRoutes.noticeWrite:
+        pageContent = const NoticeWriteScreen(); break;
       case AppRoutes.qna:
         pageContent = const QnaScreen(); break;
       case AppRoutes.share:
