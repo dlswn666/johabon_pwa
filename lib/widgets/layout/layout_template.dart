@@ -84,7 +84,7 @@ class _LayoutTemplateState extends State<LayoutTemplate> {
   Widget _buildWebLayout(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     return Scaffold(
-      backgroundColor: widget.backgroundColor,
+      backgroundColor: Colors.white,
       body: Column(
         children: [
           if (widget.showHeader) WebHeader(isLoggedIn: authProvider.isLoggedIn),

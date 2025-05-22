@@ -19,7 +19,7 @@ import 'package:johabon_pwa/screens/community/community_home_screen.dart';
 import 'package:johabon_pwa/screens/community/company_board_screen.dart';
 import 'package:johabon_pwa/screens/community/gallery_screen.dart';
 import 'package:johabon_pwa/screens/community/info_sharing_screen.dart';
-import 'package:johabon_pwa/screens/community/notice_screen.dart';
+import 'package:johabon_pwa/screens/community/notice_list_screen.dart';
 import 'package:johabon_pwa/screens/community/qna_screen.dart';
 import 'package:johabon_pwa/screens/community/share_screen.dart';
 import 'package:johabon_pwa/screens/development/development_info_screen.dart';
@@ -64,6 +64,36 @@ class AppRoutes {
   static const String adminBanner = 'banners'; // admin/banners
   static const String adminBasicInfo = 'basic-info'; // admin/basic-info
   
+  // 슬러그가 포함된 전체 경로 생성 메서드
+  static String getFullRoute(String slug, String path) {
+    if (path.isEmpty) {
+      return '/$slug';
+    }
+    return '/$slug/$path';
+  }
+  
+  // 메뉴에서 사용할 슬러그 기반 경로들
+  static Map<String, String> getSlugRoutes(String slug) {
+    return {
+      'home': getFullRoute(slug, home),
+      'login': getFullRoute(slug, login),
+      'register': getFullRoute(slug, register),
+      'associationIntro': getFullRoute(slug, associationIntro),
+      'officeInfo': getFullRoute(slug, officeInfo),
+      'organization': getFullRoute(slug, organization),
+      'developmentProcess': getFullRoute(slug, developmentProcess),
+      'developmentInfo': getFullRoute(slug, developmentInfo),
+      'notice': getFullRoute(slug, notice),
+      'qna': getFullRoute(slug, qna),
+      'share': getFullRoute(slug, share),
+      'infoSharing': getFullRoute(slug, infoSharing),
+      'companyBoard': getFullRoute(slug, companyBoard),
+      'communityHome': getFullRoute(slug, communityHome),
+      'gallery': getFullRoute(slug, gallery),
+      'profile': getFullRoute(slug, profile),
+    };
+  }
+
   // getRoutes는 이제 splash, notFound 외에는 거의 사용되지 않음
   static Map<String, WidgetBuilder> getRoutes() {
     return {
@@ -95,6 +125,10 @@ class AppRoutes {
       return _buildPageRoute(const NotFoundScreen(), RouteSettings(name: AppRoutes.notFound));
     }
     
+    // Provider 인스턴스 획득
+    final unionProvider = Provider.of<UnionProvider>(context, listen: false);
+    final currentSlug = unionProvider.currentUnion?.homepage;
+    
     // 모든 라우트 이름이 '/'로 시작하는지 확인
     final routeName = settings.name!.startsWith('/') ? settings.name! : '/${settings.name}';
     
@@ -104,9 +138,71 @@ class AppRoutes {
     print("[Routes] generateRoute called with settings.name: '${settings.name}'");
     print("[Routes] Normalized route name: '$routeName'");
     print("[Routes] URI parsed: $uri, pathSegments: $pathSegments");
+    print("[Routes] Current slug from provider: $currentSlug");
 
-    // Provider 인스턴스 획득
-    final unionProvider = Provider.of<UnionProvider>(context, listen: false);
+    // 중요: 특수한 경우 처리 - community/notice 형태의 경로가 직접 입력될 경우
+    // 이 경우 pathSegments 길이가 2 이상이고 첫 세그먼트가 'community', 'association' 등인 경우
+    if (pathSegments.length >= 2 && 
+        (pathSegments[0] == 'community' || 
+         pathSegments[0] == 'association' || 
+         pathSegments[0] == 'development' || 
+         pathSegments[0] == 'user')) {
+      
+      // 현재 유효한 슬러그가 있으면 해당 슬러그로 리다이렉트
+      if (currentSlug != null) {
+        print("[Routes] Direct path detected without slug. Redirecting using current slug: $currentSlug");
+        String actualPath = pathSegments.join('/');
+        
+        // 슬러그와 경로를 조합한 전체 경로
+        String redirectPath = getFullRoute(currentSlug, actualPath);
+        print("[Routes] Redirecting to: $redirectPath");
+        
+        // 원래 경로에 해당하는 화면 결정
+        Widget pageContent = const NotFoundScreen();
+        
+        switch (actualPath) {
+          case AppRoutes.associationIntro:
+            pageContent = const AssociationIntroScreen(); break;
+          case AppRoutes.officeInfo:
+            pageContent = const OfficeInfoScreen(); break;
+          case AppRoutes.organization:
+          case AppRoutes.organizationChart:
+            pageContent = const OrganizationScreen(); break;
+          case AppRoutes.developmentProcess:
+            pageContent = const DevelopmentProcessScreen(); break;
+          case AppRoutes.developmentInfo:
+            pageContent = const DevelopmentInfoScreen(); break;
+          case AppRoutes.notice:
+            pageContent = const NoticeListScreen(); break;
+          case AppRoutes.qna:
+            pageContent = const QnaScreen(); break;
+          case AppRoutes.share:
+            pageContent = const ShareScreen(); break;
+          case AppRoutes.infoSharing:
+            pageContent = const InfoSharingScreen(); break;
+          case AppRoutes.companyBoard:
+            pageContent = const CompanyBoardScreen(); break;
+          case AppRoutes.communityHome:
+            pageContent = const CommunityHomeScreen(); break;
+          case AppRoutes.gallery:
+            pageContent = const GalleryScreen(); break;
+          case AppRoutes.profile:
+            pageContent = const ProfileScreen(); break;
+          default:
+            print("[Routes] Unhandled direct path: $actualPath, navigating to 404");
+            return _buildPageRoute(const NotFoundScreen(), 
+                RouteSettings(name: AppRoutes.notFound, arguments: settings.arguments));
+        }
+        
+        return _buildPageRoute(pageContent, 
+            RouteSettings(name: redirectPath, arguments: settings.arguments));
+      } else {
+        // 유효한 슬러그가 없고 로딩 중이 아니면 메인 페이지로 이동 또는 로그인 페이지로 리다이렉트 고려
+        print("[Routes] Cannot redirect without valid slug. Showing 404 page.");
+        return _buildPageRoute(const NotFoundScreen(), 
+            RouteSettings(name: AppRoutes.notFound, arguments: settings.arguments));
+      }
+    }
     
     // 루트 경로 (/) 접근 시 무조건 404 처리
     if (routeName == '/') {
@@ -263,7 +359,7 @@ class AppRoutes {
       case AppRoutes.developmentInfo:
         pageContent = const DevelopmentInfoScreen(); break;
       case AppRoutes.notice:
-        pageContent = const NoticeScreen(); break;
+        pageContent = const NoticeListScreen(); break;
       case AppRoutes.qna:
         pageContent = const QnaScreen(); break;
       case AppRoutes.share:

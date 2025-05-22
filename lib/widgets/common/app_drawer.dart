@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:johabon_pwa/config/routes.dart';
 import 'package:johabon_pwa/providers/auth_provider.dart';
+import 'package:johabon_pwa/providers/union_provider.dart';
 import 'package:provider/provider.dart';
 
 class AppDrawer extends StatefulWidget {
@@ -53,20 +54,59 @@ class _AppDrawerState extends State<AppDrawer> {
           _selectedRoute = routeName;
         });
         Navigator.pop(context); // Drawer 닫기
-        // 실제 페이지 이동 로직 (routeName에 따라 분기)
-        if (routeName == AppRoutes.home) { // 예시: 홈으로 이동
-          Navigator.pushNamed(context, AppRoutes.home);
-        } else if (routeName == AppRoutes.notice) { // 예시: 공지사항
-            Navigator.pushNamed(context, AppRoutes.notice);
-        } else if (routeName == AppRoutes.qna) { // 예시: QNA
-            Navigator.pushNamed(context, AppRoutes.qna);
-        } else if (routeName == 'logout') {
+        
+        print('[AppDrawer] MenuItem clicked: $title, route: $routeName');
+        
+        // 고정 경로 처리 (logout, splash, 404 등)
+        if (routeName == 'logout') {
           // 로그아웃 로직
           Provider.of<AuthProvider>(context, listen: false).logout();
-          Navigator.pushReplacementNamed(context, AppRoutes.login); 
+          
+          // 현재 슬러그를 가져옵니다
+          final unionProvider = Provider.of<UnionProvider>(context, listen: false);
+          final slug = unionProvider.currentUnion?.homepage;
+          
+          if (slug != null) {
+            print('[AppDrawer] Logout - Navigating to /$slug/${AppRoutes.login}');
+            Navigator.pushReplacementNamed(context, '/$slug/${AppRoutes.login}');
+          } else {
+            // 슬러그가 없는 경우 (비정상적인 상황) 404로 이동
+            print('[AppDrawer] Logout - No slug, navigating to 404');
+            Navigator.pushReplacementNamed(context, AppRoutes.notFound);
+          }
+          return;
         }
-        // TODO: 나머지 라우트들에 대한 네비게이션 로직 추가
-        print('Navigate to: $routeName');
+        
+        // 고정 경로 (slash로 시작하는 경우)
+        if (routeName.startsWith('/')) {
+          print('[AppDrawer] Navigating to fixed path: $routeName');
+          Navigator.pushNamed(context, routeName);
+          return;
+        }
+        
+        // 관리자 페이지 처리 (routeName이 'admin/'으로 시작하는 경우)
+        if (routeName.startsWith('admin/')) {
+          // admin/ 접두사를 제거하고 직접 경로로 이동
+          final adminPath = '/$routeName';
+          print('[AppDrawer] Navigating to admin path: $adminPath');
+          Navigator.pushNamed(context, adminPath);
+          return;
+        }
+        
+        // 그 외 일반 라우트 처리 (슬러그 포함)
+        final unionProvider = Provider.of<UnionProvider>(context, listen: false);
+        final slug = unionProvider.currentUnion?.homepage;
+        
+        if (slug != null) {
+          // 슬러그를 포함한 전체 경로
+          final fullPath = '/$slug/$routeName';
+          print('[AppDrawer] Navigating with slug: $fullPath');
+          Navigator.pushNamed(context, fullPath);
+        } else {
+          // 슬러그가 없는 경우 (비정상적인 상황) 404로 이동
+          print('[AppDrawer] No slug available, navigating to 404');
+          Navigator.pushNamed(context, AppRoutes.notFound);
+        }
       },
       contentPadding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 4.0),
     );
@@ -98,50 +138,35 @@ class _AppDrawerState extends State<AppDrawer> {
                 ),
               ),
             ),
+            _buildMenuItem(context, '홈', AppRoutes.home, Icons.home_outlined),
+            const Divider(),
             _buildMenuCategory('조합소개'),
-            _buildMenuItem(context, '조합장 인사', 'introduction_greeting', Icons.person_outline),
-            _buildMenuItem(context, '사무실 안내', 'introduction_office', Icons.location_on_outlined),
-            _buildMenuItem(context, '조직도', 'introduction_organization', Icons.groups_outlined),
+            _buildMenuItem(context, '조합장 인사', AppRoutes.associationIntro, Icons.person_outline),
+            _buildMenuItem(context, '사무실 안내', AppRoutes.officeInfo, Icons.location_on_outlined),
+            _buildMenuItem(context, '조직도', AppRoutes.organization, Icons.groups_outlined),
             const Divider(),
             _buildMenuCategory('재개발소개'),
-            _buildMenuItem(context, '재개발 진행 과정', 'redevelopment_process', Icons.timeline_outlined),
-            _buildMenuItem(context, '재개발 정보', 'redevelopment_info', Icons.info_outline),
+            _buildMenuItem(context, '재개발 진행 과정', AppRoutes.developmentProcess, Icons.timeline_outlined),
+            _buildMenuItem(context, '재개발 정보', AppRoutes.developmentInfo, Icons.info_outline),
             const Divider(),
             _buildMenuCategory('커뮤니티'),
             _buildMenuItem(context, '공지사항', AppRoutes.notice, Icons.campaign_outlined),
             _buildMenuItem(context, 'Q&A', AppRoutes.qna, Icons.question_answer_outlined),
-            _buildMenuItem(context, '정보공유방', 'community_info_share', Icons.share_outlined),
+            _buildMenuItem(context, '정보공유방', AppRoutes.infoSharing, Icons.share_outlined),
             // 관리자 메뉴 (조건부 렌더링 제거)
             // if (authProvider.isLoggedIn && authProvider.isAdmin) ...[
-              const Divider(),
-              _buildMenuCategory('관리자'),
-              _buildMenuItem(context, '슬라이드 관리', 'admin_slide', Icons.slideshow_outlined),
-              _buildMenuItem(context, '업체소개 관리', 'admin_partner', Icons.business_center_outlined),
-              _buildMenuItem(context, '배너 관리', 'admin_banner', Icons.ad_units_outlined),
-              _buildMenuItem(context, '알림톡 관리', 'admin_alimtalk', Icons.sms_outlined),
-              _buildMenuItem(context, '사용자 관리', 'admin_user', Icons.manage_accounts_outlined),
-              _buildMenuItem(context, '기본정보 관리', 'admin_basic_info', Icons.settings_outlined),
+            const Divider(),
+            _buildMenuCategory('관리자'),
+            _buildMenuItem(context, '관리자 홈', '/admin/${AppRoutes.adminHome}', Icons.admin_panel_settings_outlined),
+            _buildMenuItem(context, '슬라이드 관리', '/admin/${AppRoutes.slideManage}', Icons.slideshow_outlined),
+            _buildMenuItem(context, '업체소개 관리', '/admin/${AppRoutes.companyManage}', Icons.business_center_outlined),
+            _buildMenuItem(context, '배너 관리', '/admin/${AppRoutes.adminBanner}', Icons.ad_units_outlined),
+            _buildMenuItem(context, '알림톡 관리', '/admin/${AppRoutes.alarmManage}', Icons.sms_outlined),
+            _buildMenuItem(context, '사용자 관리', '/admin/${AppRoutes.userManage}', Icons.manage_accounts_outlined),
+            _buildMenuItem(context, '기본정보 관리', '/admin/${AppRoutes.adminBasicInfo}', Icons.settings_outlined),
             // ], // 조건부 렌더링 제거
             const Divider(),
-            ListTile(
-              leading: Icon(Icons.logout, color: Colors.grey[600]),
-              title: const Text(
-                '로그아웃',
-                style: TextStyle(
-                    fontFamily: 'Wanted Sans',
-                    fontSize: 16,
-                    color: Colors.black87),
-              ),
-              onTap: () {
-                setState(() {
-                  _selectedRoute = 'logout'; // 로그아웃도 선택 상태로 표시 (선택적)
-                });
-                Navigator.pop(context);
-                Provider.of<AuthProvider>(context, listen: false).logout();
-                Navigator.pushReplacementNamed(context, AppRoutes.login);
-              },
-              contentPadding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 4.0),
-            ),
+            _buildMenuItem(context, '로그아웃', 'logout', Icons.logout),
           ],
         ),
       ),
