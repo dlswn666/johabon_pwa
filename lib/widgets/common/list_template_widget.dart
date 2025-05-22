@@ -27,11 +27,16 @@ class ListTemplateWidget extends StatefulWidget {
   final Widget? leftSidebar;
   final Widget? rightSidebar;
 
-  // 페이지네이션 관련 매개변수 추가
+  // 페이지네이션 관련 매개변수
   final int currentPage;
   final int totalItems;
   final int itemsPerPage;
   final Function(int)? onPageChanged;
+
+  // 권한 관련 매개변수 추가
+  final List<String> writePermissionTypes;
+  final String? currentUserType;
+  final VoidCallback? onWriteButtonTap;
 
   const ListTemplateWidget({
     super.key,
@@ -47,6 +52,9 @@ class ListTemplateWidget extends StatefulWidget {
     this.totalItems = 0,
     this.itemsPerPage = 10,
     this.onPageChanged,
+    this.writePermissionTypes = const ['admin'],
+    this.currentUserType,
+    this.onWriteButtonTap,
   });
 
   @override
@@ -104,14 +112,56 @@ class _ListTemplateWidgetState extends State<ListTemplateWidget> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                widget.title,
-                style: TextStyle(
-                  fontFamily: 'Wanted Sans',
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF41505D),
-                ),
+              Row(
+                children: [
+                  Text(
+                    widget.title,
+                    style: TextStyle(
+                      fontFamily: 'Wanted Sans',
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF41505D),
+                    ),
+                  ),
+                  if (widget.currentUserType != null && 
+                      widget.writePermissionTypes.contains(widget.currentUserType))
+                    Padding(
+                      padding: const EdgeInsets.only(left: 16),
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTap: widget.onWriteButtonTap,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Color(0xFF75D49B),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.edit,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  '글쓰기',
+                                  style: TextStyle(
+                                    fontFamily: 'Wanted Sans',
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               _buildSearchArea(context),
             ],

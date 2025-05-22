@@ -3,6 +3,8 @@ import 'package:johabon_pwa/widgets/layout/content_layout_template.dart';
 import 'package:johabon_pwa/widgets/common/ad_banner_widget.dart';
 import 'package:johabon_pwa/utils/responsive_layout.dart';
 import 'package:johabon_pwa/widgets/common/list_template_widget.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 // NoticeItem 클래스 정의 (ListItemInterface 구현)
 class NoticeItem implements ListItemInterface {
@@ -48,12 +50,28 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
   final int _itemsPerPage = 10;
   List<NoticeItem> _noticeItems = [];
   int _totalItems = 85; // 임시로 총 85개 아이템이 있다고 가정
+  String? _currentUserType;
 
   @override
   void initState() {
     super.initState();
     // 초기 데이터 로드
     _loadPageData(_currentPage);
+    _loadUserType();
+  }
+
+  // 사용자 타입 로드
+  Future<void> _loadUserType() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _currentUserType = prefs.getString('user_type');
+    });
+  }
+
+  // 글쓰기 버튼 클릭 처리
+  void _handleWriteButtonTap() {
+    print('글쓰기 버튼 클릭');
+    // 실제로는 여기서 글쓰기 페이지로 이동하게 됩니다.
   }
 
   // 페이지 데이터 로드 (임시 데이터 생성)
@@ -143,6 +161,9 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
       onSearch: _handleSearch,
       onItemTap: _handleItemTap,
       onPageChanged: _loadPageData,
+      writePermissionTypes: const ['admin', 'member', 'systemadmin'],
+      currentUserType: _currentUserType,
+      onWriteButtonTap: _handleWriteButtonTap,
     );
   }
 } 
