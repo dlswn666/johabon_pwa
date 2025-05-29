@@ -4,6 +4,7 @@ import 'package:flutter_dropzone/flutter_dropzone.dart';
 import 'package:johabon_pwa/widgets/layout/content_layout_template.dart';
 import 'package:johabon_pwa/utils/responsive_layout.dart';
 import 'package:johabon_pwa/widgets/common/ad_banner_widget.dart';
+import 'package:html_editor_enhanced/html_editor.dart';
 import 'dart:typed_data';
 
 class NoticeWriteScreen extends StatefulWidget {
@@ -15,7 +16,7 @@ class NoticeWriteScreen extends StatefulWidget {
 
 class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
   final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _contentController = TextEditingController();
+  final HtmlEditorController _contentController = HtmlEditorController();
   late DropzoneViewController _dropzoneController;
   
   // 상태 변수
@@ -28,7 +29,6 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
   @override
   void dispose() {
     _titleController.dispose();
-    _contentController.dispose();
     super.dispose();
   }
 
@@ -91,7 +91,7 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
   // 게시글 저장
   Future<void> _savePost() async {
     final title = _titleController.text;
-    final content = _contentController.text;
+    final content = await _contentController.getText();
     
     if (title.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -123,9 +123,9 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
   }
 
   // 임시저장
-  void _saveTemp() {
+  Future<void> _saveTemp() async {
     final title = _titleController.text;
-    final content = _contentController.text;
+    final content = await _contentController.getText();
     
     // TODO: 임시저장 기능 구현
     print('임시저장 - 제목: $title');
@@ -140,7 +140,7 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
   void _loadTemp() {
     // TODO: 임시저장 불러오기 구현
     _titleController.text = "임시 저장된 제목";
-    _contentController.text = "임시 저장된 내용입니다.";
+    _contentController.setText("<p>임시 저장된 내용입니다.</p>");
     
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('임시저장된 글을 불러왔습니다')),
@@ -484,20 +484,45 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
                   ),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: TextField(
+                child: HtmlEditor(
                   controller: _contentController,
-                  maxLines: null,
-                  expands: true,
-                  textAlignVertical: TextAlignVertical.top,
-                  decoration: const InputDecoration(
-                    hintText: '내용을 입력해주세요',
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.all(16),
+                  htmlEditorOptions: const HtmlEditorOptions(
+                    hint: '내용을 입력해주세요',
+                    shouldEnsureVisible: true,
+                    initialText: '',
                   ),
-                  style: const TextStyle(
-                    fontFamily: 'Wanted Sans',
-                    fontSize: 16,
-                    color: Color(0xFF41505D),
+                  htmlToolbarOptions: HtmlToolbarOptions(
+                    toolbarPosition: ToolbarPosition.aboveEditor,
+                    toolbarType: ToolbarType.nativeGrid,
+                    defaultToolbarButtons: const [
+                      StyleButtons(),
+                      FontSettingButtons(fontSizeUnit: false),
+                      FontButtons(clearAll: false),
+                      ColorButtons(),
+                      ListButtons(listStyles: false),
+                      ParagraphButtons(textDirection: false, lineHeight: false, caseConverter: false),
+                      InsertButtons(video: false, audio: false, table: false, hr: false, otherFile: false),
+                    ],
+                  ),
+                  otherOptions: const OtherOptions(
+                    height: 500,
+                    decoration: BoxDecoration(
+                      border: Border.fromBorderSide(BorderSide.none),
+                    ),
+                  ),
+                  callbacks: Callbacks(
+                    onChangeContent: (String? changed) {
+                      print('content changed to $changed');
+                    },
+                    onFocus: () {
+                      print('editor focused');
+                    },
+                    onBlur: () {
+                      print('editor unfocused');
+                    },
+                    onInit: () {
+                      print('editor initialized');
+                    },
                   ),
                 ),
               ),
