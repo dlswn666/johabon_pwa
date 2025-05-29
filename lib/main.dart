@@ -57,7 +57,8 @@ void main() async{
         firstSegment != 'login' &&  // 로그인 직접 접근
         firstSegment != 'register') { // 회원가입 직접 접근
       currentSlug = firstSegment;
-      initialRouteForApp = '/$currentSlug'; 
+      // 전체 경로를 초기 라우트로 설정 (새로고침 시 현재 페이지 유지)
+      initialRouteForApp = uri.path.isEmpty || uri.path == '/' ? '/$currentSlug' : uri.path;
       print("[Main] Detected slug: '$currentSlug', Initial route set to: '$initialRouteForApp'");
     } else if (firstSegment == 'login' || firstSegment == 'register') {
       // 로그인/회원가입 직접 접근 시 404 처리 (슬러그 필요)
@@ -73,8 +74,17 @@ void main() async{
     print("[Main] No path segments, redirecting to 404: '$initialRouteForApp'");
   }
   
-  // UnionProvider 초기화
+  // AuthProvider와 UnionProvider 초기화
+  print("[Main] Providers 초기화 시작");
+  final authProvider = AuthProvider();
   final unionProvider = UnionProvider();
+  
+  // AuthProvider 초기화 완료 대기
+  while (!authProvider.isInitialized) {
+    await Future.delayed(const Duration(milliseconds: 10));
+  }
+  print("[Main] AuthProvider 초기화 완료");
+  
   if (currentSlug != null) {
     print("[Main] Fetching union for slug: '$currentSlug'");
     unionProvider.fetchAndSetUnion(currentSlug);
@@ -85,7 +95,7 @@ void main() async{
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider.value(value: authProvider),
         ChangeNotifierProvider.value(value: unionProvider),
       ],
       child: MyApp(initialRoute: initialRouteForApp),
@@ -100,25 +110,121 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     print("[MyApp build] initialRoute: '$initialRoute'");
-    return MaterialApp(
-      title: '재개발/재건축',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      initialRoute: initialRoute,
-      routes: AppRoutes.getRoutes(), // 기본 경로들 추가
-      onGenerateRoute: (settings) {
-        print("[MyApp onGenerateRoute] called with settings name: '${settings.name}', arguments: ${settings.arguments}");
-        return AppRoutes.generateRoute(settings, context);
-      },
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('ko', 'KR'),
-        Locale('en', 'US'),
-      ],
+    return UserActivityWidget(
+      child: Consumer<AuthProvider>(
+        builder: (context, authProvider, child) {
+          // AuthProvider 초기화 완료 대기
+          if (!authProvider.isInitialized) {
+            print('[MyApp] AuthProvider 초기화 대기 중...');
+            return const MaterialApp(
+              home: Scaffold(
+                body: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('앱 초기화 중...')
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+          
+          print('[MyApp] AuthProvider 초기화 완료 - 로그인: ${authProvider.isLoggedIn}, 사용자: ${authProvider.currentUser?.name}');
+          
+          return MaterialApp(
+            title: '재개발/재건축',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            initialRoute: initialRoute,
+            routes: AppRoutes.getRoutes(), // 기본 경로들 추가
+            onGenerateRoute: (settings) {
+              print("[MyApp onGenerateRoute] called with settings name: '${settings.name}', arguments: ${settings.arguments}");
+              return AppRoutes.generateRoute(settings, context);
+            },
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('ko', 'KR'),
+              Locale('en', 'US'),
+            ],
+            locale: const Locale('ko', 'KR'),
+          );
+        },
+      ),
     );
+  }
+}
+
+// 사용자 활동 감지 위젯
+class UserActivityDetector extends StatefulWidget {
+  final Widget child;
+  
+  const UserActivityDetector({super.key, required this.child});
+
+  @override
+  State<UserActivityDetector> createState() => _UserActivityDetectorState();
+}
+
+class _UserActivityDetectorState extends State<UserActivityDetector> {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _onUserActivity(context),
+      onPanDown: (_) => _onUserActivity(context),
+      onScaleStart: (_) => _onUserActivity(context),
+      child: Listener(
+        onPointerDown: (_) => _onUserActivity(context),
+        onPointerMove: (_) => _onUserActivity(context),
+        onPointerUp: (_) => _onUserActivity(context),
+        child: widget.child,
+      ),
+    );
+  }
+  
+  void _onUserActivity(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (authProvider.isLoggedIn) {
+      authProvider.refreshSession();
+    }
+  }
+}
+
+// UserActivityWidget으로 앱 전체를 감싸서 사용자 활동 감지
+class UserActivityWidget extends StatefulWidget {
+  final Widget child;
+  
+  const UserActivityWidget({super.key, required this.child});
+
+  @override
+  State<UserActivityWidget> createState() => _UserActivityWidgetState();
+}
+
+class _UserActivityWidgetState extends State<UserActivityWidget> {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _onUserActivity(context),
+      onPanDown: (_) => _onUserActivity(context),
+      onScaleStart: (_) => _onUserActivity(context),
+      child: Listener(
+        onPointerDown: (_) => _onUserActivity(context),
+        onPointerMove: (_) => _onUserActivity(context),
+        onPointerUp: (_) => _onUserActivity(context),
+        child: widget.child,
+      ),
+    );
+  }
+  
+  void _onUserActivity(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (authProvider.isLoggedIn) {
+      authProvider.refreshSession();
+    }
   }
 }

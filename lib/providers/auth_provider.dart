@@ -10,8 +10,8 @@ import 'package:johabon_pwa/utils/password_util.dart';
 import 'dart:js' if (dart.library.io) 'package:johabon_pwa/utils/stub_js.dart' as js;
 
 class AuthProvider with ChangeNotifier {
-  // 세션 타임아웃 상수 (30분, 밀리초 단위)
-  // static const int sessionTimeoutMs = 30 * 60 * 1000; 
+  // 세션 타임아웃 상수 (8시간, 밀리초 단위) - 더 긴 시간으로 설정
+  static const int sessionTimeoutMs = 8 * 60 * 60 * 1000; 
   
   bool _isLoggedIn = false;
   bool _isAdmin = false;
@@ -44,6 +44,7 @@ class AuthProvider with ChangeNotifier {
   // 인증 상태 초기화
   Future<void> _initializeAuthState() async {
     try {
+      print('[AuthProvider] 인증 상태 복원 시작');
       await _loadUserFromPrefs();
       
       // 로그인 상태면 세션 타이머 시작
@@ -67,14 +68,14 @@ class AuthProvider with ChangeNotifier {
     
     if (lastActivity != null) {
       final now = DateTime.now();
-      // final difference = now.difference(lastActivity).inMilliseconds;
+      final difference = now.difference(lastActivity).inMilliseconds;
       
       // 세션 타임아웃이 지났으면 로그아웃
-      // if (difference > sessionTimeoutMs) {
-      //   print('[AuthProvider] 세션 만료됨 (마지막 활동: $lastActivity)');
-      //   await logout(isAutoLogout: true);
-      //   return;
-      // }
+      if (difference > sessionTimeoutMs) {
+        print('[AuthProvider] 세션 만료됨 (마지막 활동: $lastActivity)');
+        await logout(isAutoLogout: true);
+        return;
+      }
       
       // 마지막 활동 시간이 유효하면 저장
       _lastActivityTime = lastActivity;
@@ -85,7 +86,7 @@ class AuthProvider with ChangeNotifier {
     }
     
     // 세션 타이머 시작
-    // _startSessionTimer();
+    _startSessionTimer();
   }
   
   // 마지막 활동 시간 가져오기
@@ -95,8 +96,8 @@ class AuthProvider with ChangeNotifier {
         final timestamp = js.context.callMethod('eval', 
           ["localStorage.getItem('auth_last_activity')"]);
         
-        if (timestamp != null && timestamp.toString().isNotEmpty) {
-          return DateTime.fromMillisecondsSinceEpoch(int.parse(timestamp));
+        if (timestamp != null && timestamp.toString().isNotEmpty && timestamp.toString() != 'null') {
+          return DateTime.fromMillisecondsSinceEpoch(int.parse(timestamp.toString()));
         }
       }
       
@@ -141,12 +142,12 @@ class AuthProvider with ChangeNotifier {
     _sessionTimer?.cancel();
     
     // 새 타이머 시작
-    // _sessionTimer = Timer(const Duration(milliseconds: sessionTimeoutMs), () async {
-    //   print('[AuthProvider] 세션 타이머 만료, 자동 로그아웃');
-    //   await logout(isAutoLogout: true);
-    // });
+    _sessionTimer = Timer(const Duration(milliseconds: sessionTimeoutMs), () async {
+      print('[AuthProvider] 세션 타이머 만료, 자동 로그아웃');
+      await logout(isAutoLogout: true);
+    });
     
-    // print('[AuthProvider] 세션 타이머 시작: ${Duration(milliseconds: sessionTimeoutMs).inMinutes}분');
+    print('[AuthProvider] 세션 타이머 시작: ${Duration(milliseconds: sessionTimeoutMs).inHours}시간');
   }
   
   // 세션 갱신 (사용자 활동 감지 시 호출)
@@ -310,37 +311,38 @@ class AuthProvider with ChangeNotifier {
       final token = js.context.callMethod('eval', ["localStorage.getItem('auth_token')"]);
       final timestamp = js.context.callMethod('eval', ["localStorage.getItem('auth_timestamp')"]);
       
-      if (userJson == null || token == null) {
+      if (userJson == null || userJson.toString() == 'null' || 
+          token == null || token.toString() == 'null') {
         print('[AuthProvider] localStorage에 인증 정보 없음');
         return false;
       }
       
       // 타임스탬프 기반 만료 체크
-      if (timestamp != null) {
+      if (timestamp != null && timestamp.toString() != 'null') {
         final loginTime = DateTime.fromMillisecondsSinceEpoch(int.parse(timestamp.toString()));
         final now = DateTime.now();
-        // final difference = now.difference(loginTime).inMilliseconds;
+        final difference = now.difference(loginTime).inMilliseconds;
         
         // 세션 타임아웃 검사
-        // if (difference > sessionTimeoutMs) {
-        //   print('[AuthProvider] localStorage 세션 만료: $loginTime');
+        if (difference > sessionTimeoutMs) {
+          print('[AuthProvider] localStorage 세션 만료: $loginTime');
           
-        //   // 만료된 데이터 정리
-        //   js.context.callMethod('eval', [
-        //     '''
-        //     localStorage.removeItem('auth_user');
-        //     localStorage.removeItem('auth_token');
-        //     localStorage.removeItem('auth_timestamp');
-        //     localStorage.removeItem('auth_last_activity');
-        //     console.log('Expired auth data removed from localStorage');
-        //     '''
-        //   ]);
+          // 만료된 데이터 정리
+          js.context.callMethod('eval', [
+            '''
+            localStorage.removeItem('auth_user');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('auth_timestamp');
+            localStorage.removeItem('auth_last_activity');
+            console.log('Expired auth data removed from localStorage');
+            '''
+          ]);
           
-        //   return false;
-        // }
+          return false;
+        }
       }
       
-      final userData = json.decode(userJson) as Map<String, dynamic>;
+      final userData = json.decode(userJson.toString()) as Map<String, dynamic>;
       
       final user = models.User(
         id: userData['id'],
@@ -356,12 +358,26 @@ class AuthProvider with ChangeNotifier {
       _isLoggedIn = true;
       _isAdmin = user.userType == 'admin';
       _isMember = user.userType == 'member' || user.userType == 'admin';
-      _token = token;
+      _token = token.toString();
       
       print('[AuthProvider] localStorage에서 인증 정보 복원 성공: ${user.name}');
       return true;
     } catch (e) {
       print('[AuthProvider] localStorage 복원 오류: $e');
+      // 오류 발생 시 localStorage 정리
+      try {
+        js.context.callMethod('eval', [
+          '''
+          localStorage.removeItem('auth_user');
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_timestamp');
+          localStorage.removeItem('auth_last_activity');
+          console.log('Corrupted auth data removed from localStorage');
+          '''
+        ]);
+      } catch (cleanupError) {
+        print('[AuthProvider] localStorage 정리 오류: $cleanupError');
+      }
       return false;
     }
   }
@@ -470,7 +486,6 @@ class AuthProvider with ChangeNotifier {
         final success = await _loadFromLocalStorage();
         if (success) {
           print('[AuthProvider] localStorage에서 복원 성공');
-          notifyListeners();
           return;
         }
       }
@@ -483,8 +498,8 @@ class AuthProvider with ChangeNotifier {
       }
 
       final userData = prefs.getString('user_data');
-      if (userData == null) {
-        print('[AuthProvider] user_data가 null');
+      if (userData == null || userData.isEmpty) {
+        print('[AuthProvider] user_data가 null 또는 비어있음');
         return;
       }
 
@@ -494,19 +509,19 @@ class AuthProvider with ChangeNotifier {
       if (extractedUserData.containsKey('timestamp')) {
         final loginTime = DateTime.parse(extractedUserData['timestamp']);
         final now = DateTime.now();
-        // final difference = now.difference(loginTime).inMilliseconds;
+        final difference = now.difference(loginTime).inMilliseconds;
         
         // 세션 타임아웃 검사
-        // if (difference > sessionTimeoutMs) {
-        //   print('[AuthProvider] SharedPreferences 세션 만료: $loginTime');
+        if (difference > sessionTimeoutMs) {
+          print('[AuthProvider] SharedPreferences 세션 만료: $loginTime');
           
-        //   // 만료된 데이터 삭제
-        //   await prefs.remove('user_data');
-        //   await prefs.remove('token');
-        //   await prefs.remove('auth_last_activity');
+          // 만료된 데이터 삭제
+          await prefs.remove('user_data');
+          await prefs.remove('token');
+          await prefs.remove('auth_last_activity');
           
-        //   return;
-        // }
+          return;
+        }
       }
       
       final user = models.User(
@@ -516,7 +531,7 @@ class AuthProvider with ChangeNotifier {
         userType: extractedUserData['userType'] ?? extractedUserData['role'],
         unionId: extractedUserData['unionId'],
         isApproved: extractedUserData['isApproved'] ?? true,
-        createdAt: DateTime.parse(extractedUserData['createdAt'] ?? extractedUserData['created_at']),
+        createdAt: DateTime.parse(extractedUserData['createdAt'] ?? extractedUserData['created_at'] ?? DateTime.now().toIso8601String()),
       );
 
       _currentUser = user;
@@ -525,7 +540,7 @@ class AuthProvider with ChangeNotifier {
       _isMember = user.userType == 'member' || user.userType == 'admin';
       _token = prefs.getString('token');
       
-      // 웹 환경에서는 localStorage에도 저장
+      // 웹 환경에서는 localStorage에도 저장하여 동기화
       if (kIsWeb) {
         _saveToLocalStorage(user);
       }
@@ -533,6 +548,16 @@ class AuthProvider with ChangeNotifier {
       print('[AuthProvider] SharedPreferences에서 복원 성공: ${user.name}');
     } catch (e) {
       print('[AuthProvider] 인증 정보 복원 오류: $e');
+      // 오류 발생 시 저장된 데이터 정리
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('user_data');
+        await prefs.remove('token');
+        await prefs.remove('auth_last_activity');
+        print('[AuthProvider] 손상된 인증 데이터 정리 완료');
+      } catch (cleanupError) {
+        print('[AuthProvider] 데이터 정리 중 오류: $cleanupError');
+      }
     }
   }
   
@@ -550,12 +575,12 @@ class AuthProvider with ChangeNotifier {
       // 마지막 활동 시간 검사
       if (_lastActivityTime != null) {
         final now = DateTime.now();
-        // final difference = now.difference(_lastActivityTime!).inMilliseconds;
+        final difference = now.difference(_lastActivityTime!).inMilliseconds;
         
-        // if (difference > sessionTimeoutMs) {
-        //   print('[AuthProvider] 토큰 유효성 검사 실패: 세션 만료');
-        //   return false;
-        // }
+        if (difference > sessionTimeoutMs) {
+          print('[AuthProvider] 토큰 유효성 검사 실패: 세션 만료');
+          return false;
+        }
       }
       
       // TODO: 서버에 토큰 유효성 검증 요청 추가

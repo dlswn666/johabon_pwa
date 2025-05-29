@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:johabon_pwa/config/routes.dart';
+import 'package:johabon_pwa/providers/auth_provider.dart';
+import 'package:johabon_pwa/providers/union_provider.dart';
+import 'package:provider/provider.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -15,16 +18,50 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    // 3초 후 로그인 페이지로 이동
-    Timer(const Duration(seconds: 3), () {
-      Navigator.pushReplacementNamed(context, AppRoutes.login);
-    });
-
+    
     // 스피너 애니메이션 컨트롤러 초기화
     _controller = AnimationController(
       duration: const Duration(seconds: 1),
       vsync: this,
     )..repeat();
+    
+    // 인증 상태 확인 후 적절한 페이지로 이동
+    _checkAuthAndNavigate();
+  }
+  
+  Future<void> _checkAuthAndNavigate() async {
+    // 3초 대기 (스플래시 화면 표시)
+    await Future.delayed(const Duration(seconds: 3));
+    
+    if (!mounted) return;
+    
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final unionProvider = Provider.of<UnionProvider>(context, listen: false);
+    
+    // AuthProvider 초기화 완료 대기
+    while (!authProvider.isInitialized) {
+      await Future.delayed(const Duration(milliseconds: 100));
+      if (!mounted) return;
+    }
+    
+    // 현재 슬러그 확인
+    final slug = unionProvider.currentUnion?.homepage;
+    
+    if (authProvider.isLoggedIn && authProvider.currentUser != null) {
+      // 로그인된 상태라면 홈으로 이동
+      if (slug != null) {
+        Navigator.pushReplacementNamed(context, '/$slug');
+      } else {
+        Navigator.pushReplacementNamed(context, AppRoutes.notFound);
+      }
+    } else {
+      // 로그인되지 않은 상태라면 로그인 페이지로 이동
+      if (slug != null) {
+        Navigator.pushReplacementNamed(context, '/$slug/${AppRoutes.login}');
+      } else {
+        Navigator.pushReplacementNamed(context, AppRoutes.notFound);
+      }
+    }
   }
 
   @override

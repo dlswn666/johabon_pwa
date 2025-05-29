@@ -5,6 +5,7 @@ import 'package:johabon_pwa/config/theme.dart';
 import 'package:johabon_pwa/models/banner_model.dart';
 import 'package:johabon_pwa/models/notice_model.dart';
 import 'package:johabon_pwa/providers/auth_provider.dart';
+import 'package:johabon_pwa/providers/union_provider.dart';
 import 'package:johabon_pwa/utils/responsive_layout.dart';
 import 'package:johabon_pwa/widgets/layout/layout_template.dart';
 import 'package:johabon_pwa/widgets/common/custom_card.dart';
@@ -352,6 +353,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return SingleChildScrollView(
       child: Column(
         children: [
+          // 1. 로그인 상태 표시 섹션 (새로 추가)
+          _buildLoginStatusSection(context),
           // 2. 메인 배너 영역
           Stack(
             children: [
@@ -1416,6 +1419,139 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ),
       ),
+    );
+  }
+
+  // 로그인 상태 표시 섹션 (새로 추가)
+  Widget _buildLoginStatusSection(BuildContext context) {
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        if (!authProvider.isInitialized) {
+          return Container(
+            padding: const EdgeInsets.all(16.0),
+            margin: const EdgeInsets.all(8.0),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            child: const Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 12),
+                Text('인증 상태 확인 중...'),
+              ],
+            ),
+          );
+        }
+
+        if (authProvider.isLoggedIn && authProvider.currentUser != null) {
+          return Container(
+            padding: const EdgeInsets.all(16.0),
+            margin: const EdgeInsets.all(8.0),
+            decoration: BoxDecoration(
+              color: Colors.green[50],
+              borderRadius: BorderRadius.circular(8.0),
+              border: Border.all(color: Colors.green[200]!),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  authProvider.isAdmin ? Icons.admin_panel_settings : Icons.person,
+                  color: Colors.green[700],
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${authProvider.currentUser!.name}님, 안녕하세요!',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green[800],
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        authProvider.isAdmin ? '관리자로 로그인됨' : '일반 사용자로 로그인됨',
+                        style: TextStyle(
+                          color: Colors.green[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (authProvider.lastActivityTime != null)
+                  Text(
+                    '마지막 활동: ${authProvider.lastActivityTime!.hour}:${authProvider.lastActivityTime!.minute.toString().padLeft(2, '0')}',
+                    style: TextStyle(
+                      color: Colors.green[600],
+                      fontSize: 12,
+                    ),
+                  ),
+              ],
+            ),
+          );
+        } else {
+          return Container(
+            padding: const EdgeInsets.all(16.0),
+            margin: const EdgeInsets.all(8.0),
+            decoration: BoxDecoration(
+              color: Colors.orange[50],
+              borderRadius: BorderRadius.circular(8.0),
+              border: Border.all(color: Colors.orange[200]!),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.login, color: Colors.orange[700]),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '로그인이 필요합니다',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange[800],
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        '더 많은 서비스를 이용하려면 로그인하세요',
+                        style: TextStyle(
+                          color: Colors.orange[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final unionProvider = Provider.of<UnionProvider>(context, listen: false);
+                    final slug = unionProvider.currentUnion?.homepage;
+                    
+                    if (slug != null) {
+                      Navigator.pushNamed(context, '/$slug/${AppRoutes.login}');
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange[600],
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('로그인'),
+                ),
+              ],
+            ),
+          );
+        }
+      },
     );
   }
 } 

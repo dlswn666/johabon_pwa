@@ -153,18 +153,18 @@ class _AppDrawerState extends State<AppDrawer> {
             _buildMenuItem(context, '공지사항', AppRoutes.notice, Icons.campaign_outlined),
             _buildMenuItem(context, 'Q&A', AppRoutes.qna, Icons.question_answer_outlined),
             _buildMenuItem(context, '정보공유방', AppRoutes.infoSharing, Icons.share_outlined),
-            // 관리자 메뉴 (조건부 렌더링 제거)
-            // if (authProvider.isLoggedIn && authProvider.isAdmin) ...[
-            const Divider(),
-            _buildMenuCategory('관리자'),
-            _buildMenuItem(context, '관리자 홈', '/admin/${AppRoutes.adminHome}', Icons.admin_panel_settings_outlined),
-            _buildMenuItem(context, '슬라이드 관리', '/admin/${AppRoutes.slideManage}', Icons.slideshow_outlined),
-            _buildMenuItem(context, '업체소개 관리', '/admin/${AppRoutes.companyManage}', Icons.business_center_outlined),
-            _buildMenuItem(context, '배너 관리', '/admin/${AppRoutes.adminBanner}', Icons.ad_units_outlined),
-            _buildMenuItem(context, '알림톡 관리', '/admin/${AppRoutes.alarmManage}', Icons.sms_outlined),
-            _buildMenuItem(context, '사용자 관리', '/admin/${AppRoutes.userManage}', Icons.manage_accounts_outlined),
-            _buildMenuItem(context, '기본정보 관리', '/admin/${AppRoutes.adminBasicInfo}', Icons.settings_outlined),
-            // ], // 조건부 렌더링 제거
+            // 관리자 메뉴 (조건부 렌더링)
+            if (authProvider.isLoggedIn && authProvider.isAdmin) ...[
+              const Divider(),
+              _buildMenuCategory('관리자'),
+              _buildMenuItem(context, '관리자 홈', '/admin/${AppRoutes.adminHome}', Icons.admin_panel_settings_outlined),
+              _buildMenuItem(context, '슬라이드 관리', '/admin/${AppRoutes.slideManage}', Icons.slideshow_outlined),
+              _buildMenuItem(context, '업체소개 관리', '/admin/${AppRoutes.companyManage}', Icons.business_center_outlined),
+              _buildMenuItem(context, '배너 관리', '/admin/${AppRoutes.adminBanner}', Icons.ad_units_outlined),
+              _buildMenuItem(context, '알림톡 관리', '/admin/${AppRoutes.alarmManage}', Icons.sms_outlined),
+              _buildMenuItem(context, '사용자 관리', '/admin/${AppRoutes.userManage}', Icons.manage_accounts_outlined),
+              _buildMenuItem(context, '기본정보 관리', '/admin/${AppRoutes.adminBasicInfo}', Icons.settings_outlined),
+            ],
             const Divider(),
             _buildMenuItem(context, '로그아웃', 'logout', Icons.logout),
           ],
