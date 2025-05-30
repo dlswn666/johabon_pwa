@@ -10,6 +10,7 @@ enum FormFieldType {
     datepicker,
     attachment,
     htmlEditor,
+    quillEditor,
 }
 
 class FormFieldRow extends StatelessWidget {
@@ -127,6 +128,9 @@ class FormFieldRow extends StatelessWidget {
                 return Container();
             case FormFieldType.htmlEditor:
                 // htmlEditor는 CustomGridForm에서 처리하므로 여기서는 빈 Container 반환
+                return Container();
+            case FormFieldType.quillEditor:
+                // quillEditor는 CustomGridForm에서 처리하므로 여기서는 빈 Container 반환
                 return Container();
         }
     }

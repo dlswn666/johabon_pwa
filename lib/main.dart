@@ -9,6 +9,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_strategy/url_strategy.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();

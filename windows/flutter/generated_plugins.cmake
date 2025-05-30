@@ -6,10 +6,14 @@ list(APPEND FLUTTER_PLUGIN_LIST
   app_links
   cloud_firestore
   desktop_webview_window
+  file_selector_windows
   firebase_auth
   firebase_core
   flutter_inappwebview_windows
   flutter_secure_storage_windows
+  gal
+  irondash_engine_context
+  super_native_extensions
   url_launcher_windows
   window_to_front
 )

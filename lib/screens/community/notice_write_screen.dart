@@ -272,7 +272,7 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
                   FormFieldConfig(
                     keyName: 'content',
                     label: '내용1',
-                    type: FormFieldType.htmlEditor,
+                    type: FormFieldType.quillEditor,
                   ),
                 ],
               ),

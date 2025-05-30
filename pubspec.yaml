@@ -76,6 +76,8 @@ dependencies:
     universal_html: ^2.2.4
     flutter_web_auth_2: ^4.1.0
     html_editor_enhanced: ^2.6.0
+    flutter_quill: ^9.6.0
+    flutter_quill_extensions: ^9.6.0
 
 dev_dependencies:
     flutter_test:

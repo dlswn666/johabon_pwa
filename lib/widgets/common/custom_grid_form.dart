@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'form_field_row.dart';
 import 'attachment_field.dart';
-import 'html_editor_field.dart';
+import 'quill_editor_field.dart';
+import 'dart:convert';
 
 class FormFieldConfig {
     final String keyName;
@@ -146,11 +147,16 @@ class CustomGridForm extends StatelessWidget {
                     },
                 );
             case FormFieldType.htmlEditor:
-                return HtmlEditorField(
-                    initialContent: formValues[field.keyName]?.toString(),
+                // htmlEditor는 더 이상 사용하지 않음
+                return Container();
+            case FormFieldType.quillEditor:
+                return QuillEditorField(
+                    initialContent: formValues[field.keyName] is String
+                        ? formValues[field.keyName]
+                        : '',
                     hintText: field.hintText ?? '내용을 입력해주세요',
                     height: field.height ?? 300,
-                    onChange: (content) {
+                    onChanged: (content) {
                         onChanged(field.keyName, content);
                     },
                 );
@@ -434,11 +440,16 @@ class CustomGroupedForm extends StatelessWidget {
                     },
                 );
             case FormFieldType.htmlEditor:
-                return HtmlEditorField(
-                    initialContent: formValues[field.keyName]?.toString(),
+                // htmlEditor는 더 이상 사용하지 않음
+                return Container();
+            case FormFieldType.quillEditor:
+                return QuillEditorField(
+                    initialContent: formValues[field.keyName] is String
+                        ? formValues[field.keyName]
+                        : '',
                     hintText: field.hintText ?? '내용을 입력해주세요',
                     height: field.height ?? 300,
-                    onChange: (content) {
+                    onChanged: (content) {
                         onChanged(field.keyName, content);
                     },
                 );
