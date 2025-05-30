@@ -5,6 +5,8 @@ import 'package:johabon_pwa/widgets/layout/content_layout_template.dart';
 import 'package:johabon_pwa/utils/responsive_layout.dart';
 import 'package:johabon_pwa/widgets/common/ad_banner_widget.dart';
 import 'package:html_editor_enhanced/html_editor.dart';
+import 'package:johabon_pwa/widgets/common/custom_grid_form.dart';
+import 'package:johabon_pwa/widgets/common/form_field_row.dart';
 import 'dart:typed_data';
 
 class NoticeWriteScreen extends StatefulWidget {
@@ -228,308 +230,54 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
           
           const SizedBox(height: 24),
 
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 1,
-                child: Row(
-                  children: [
-                    const Text(
-                      '글 설정',
-                      style: TextStyle(
-                        fontFamily: 'Wanted Sans',
-                        fontSize: 20,
-                        fontWeight: FontWeight.w500,
-                      )
-                    )
-                  ]
-                )
+          CustomGroupedForm(
+            formValues: {},
+            onChanged: (key, value) => setState(() {}),
+            groups: [
+              FormFieldGroup(
+                columnCount: 1,
+                fields: [
+                  FormFieldConfig(
+                    keyName: 'title',
+                    label: '제목1',
+                    type: FormFieldType.input,
+                  )
+                ]
               ),
-              Expanded(
-                flex: 4,
-                child: Row(
-                  children: [
-                    _buildCheckbox('공지', _isNotice, (value) {
-                      setState(() {
-                        _isNotice = value ?? false;
-                      });
-                    }),
-                    _buildCheckbox('상단고정', _isPinned, (value) {
-                      setState(() {
-                        _isPinned = value ?? false;
-                      });
-                    }),
-                    _buildCheckbox('나만보기', _isPrivate, (value) {
-                      setState(() {
-                        _isPrivate = value ?? false;
-                      });
-                    }),
-                  ],
-                ),
-              )
-            ]
-          ),
-
-          // 글 설정
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const Text(
-                    '글 설정',
-                    style: TextStyle(
-                      fontFamily: 'Wanted Sans',
-                      fontSize: 20,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF41505D),
-                    ),
+              FormFieldGroup(
+                columnCount: 2,
+                fields: [
+                  FormFieldConfig(
+                    keyName: 'isNotice',
+                    label: '공지1',
+                    type: FormFieldType.dropdown,
+                    options: ['일반', '지출 내역', '회의 내용'],
                   ),
-                  const SizedBox(width: 8),
-                  _buildCheckbox('공지', _isNotice, (value) {
-                    setState(() {
-                      _isNotice = value ?? false;
-                    });
-                  }),
-                  const SizedBox(width: 16),
-                  _buildCheckbox('상단고정', _isPinned, (value) {
-                    setState(() {
-                      _isPinned = value ?? false;
-                    });
-                  }),
-                  const SizedBox(width: 16),
-                  _buildCheckbox('나만보기', _isPrivate, (value) {
-                    setState(() {
-                      _isPrivate = value ?? false;
-                    });
-                  }),
+                  FormFieldConfig(
+                    keyName: 'isAlimTalk',
+                    label: '알림톡 발송1',
+                    type: FormFieldType.checkbox,
+                    value: false,
+                  ),
                 ],
               ),
-            ],
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // 제목 입력
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Text(
-                    '제목',
-                    style: TextStyle(
-                      fontFamily: 'Wanted Sans',
-                      fontSize: 20,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF41505D),
-                    ),
+              FormFieldGroup(
+                columnCount: 1,
+                fields: [
+                  FormFieldConfig(
+                    keyName: 'attachFile',
+                    label: '첨부파일1',
+                    type: FormFieldType.attachment,
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Container(
-                      height: 48,
-                      decoration: const BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(
-                            color: Color(0xFF41505D),
-                            width: 1,
-                          ),
-                        ),
-                      ),
-                      child: TextField(
-                        controller: _titleController,
-                        decoration: const InputDecoration(
-                          hintText: '제목을 입력해주세요',
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12),
-                        ),
-                        style: const TextStyle(
-                          fontFamily: 'Wanted Sans',
-                          fontSize: 16,
-                          color: Color(0xFF41505D),
-                        ),
-                      ),
-                    ),
+                  FormFieldConfig(
+                    keyName: 'content',
+                    label: '내용1',
+                    type: FormFieldType.htmlEditor,
                   ),
                 ],
               ),
             ],
           ),
-
-          const SizedBox(height: 24),
-
-          // 첨부 파일
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 첨부 파일 타이틀
-              const Text(
-                '첨부 파일',
-                style: TextStyle(
-                  fontFamily: 'Wanted Sans',
-                  fontSize: 20,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF41505D),
-                ),
-              ),
-              const SizedBox(width: 16),
-              // 버튼과 드롭존 영역 (세로 정렬)
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 내 PC 버튼
-                    ElevatedButton(
-                      onPressed: _pickFiles,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF41505D),
-                        side: const BorderSide(
-                          color: Color(0xFFA8B4BE),
-                          width: 1,
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      child: const Text('내 PC'),
-                    ),
-                    const SizedBox(height: 8),
-                    // 드롭존
-                    Container(
-                      height: 62,
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: const Color(0xFFA9B2BA),
-                          width: 1,
-                          style: BorderStyle.solid,
-                        ),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Stack(
-                        children: [
-                          DropzoneView(
-                            operation: DragOperation.copy,
-                            cursor: CursorType.grab,
-                            onCreated: _onDropzoneCreated,
-                            onDrop: _onFileDrop,
-                          ),
-                          const Center(
-                            child: Text(
-                              '첨부할 파일을 마우스로 끌어 놓으세요.',
-                              style: TextStyle(
-                                fontFamily: 'Wanted Sans',
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF41505D),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // 선택된 파일 목록
-                    if (_pickedFiles.isNotEmpty || _droppedFiles.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: const Color(0xFFEAEAEA),
-                            width: 1,
-                          ),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Column(
-                          children: [
-                            ..._pickedFiles.asMap().entries.map((entry) => _buildFileItem(
-                              entry.value.name,
-                              '${(entry.value.size / 1024).toStringAsFixed(2)}KB',
-                              () => _removePickedFile(entry.key),
-                            )),
-                            ..._droppedFiles.asMap().entries.map((entry) => _buildFileItem(
-                              entry.value['name'],
-                              '${(entry.value['size'] / 1024).toStringAsFixed(2)}KB',
-                              () => _removeDroppedFile(entry.key),
-                            )),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // 에디터 (멀티라인 텍스트 필드로 대체)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              
-              Container(
-                height: 500,
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: const Color(0xFFA8B4BE),
-                    width: 1,
-                  ),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: HtmlEditor(
-                  controller: _contentController,
-                  htmlEditorOptions: const HtmlEditorOptions(
-                    hint: '내용을 입력해주세요',
-                    shouldEnsureVisible: true,
-                    initialText: '',
-                  ),
-                  htmlToolbarOptions: HtmlToolbarOptions(
-                    toolbarPosition: ToolbarPosition.aboveEditor,
-                    toolbarType: ToolbarType.nativeGrid,
-                    defaultToolbarButtons: const [
-                      StyleButtons(),
-                      FontSettingButtons(fontSizeUnit: false),
-                      FontButtons(clearAll: false),
-                      ColorButtons(),
-                      ListButtons(listStyles: false),
-                      ParagraphButtons(textDirection: false, lineHeight: false, caseConverter: false),
-                      InsertButtons(video: false, audio: false, table: false, hr: false, otherFile: false),
-                    ],
-                  ),
-                  otherOptions: const OtherOptions(
-                    height: 500,
-                    decoration: BoxDecoration(
-                      border: Border.fromBorderSide(BorderSide.none),
-                    ),
-                  ),
-                  callbacks: Callbacks(
-                    onChangeContent: (String? changed) {
-                      print('content changed to $changed');
-                    },
-                    onFocus: () {
-                      print('editor focused');
-                    },
-                    onBlur: () {
-                      print('editor unfocused');
-                    },
-                    onInit: () {
-                      print('editor initialized');
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 24),
           
           
           
@@ -703,4 +451,5 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
       ),
     );
   }
+  
 } 
