@@ -4,6 +4,9 @@ import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:flutter_quill_extensions/flutter_quill_extensions.dart';    
 import 'dart:convert';
 import 'dart:async';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
+import 'dart:typed_data';
 
 class QuillEditorField extends StatefulWidget {
   final String? initialContent; // Delta JSON string
@@ -11,6 +14,8 @@ class QuillEditorField extends StatefulWidget {
   final double? height;
   final ValueChanged<String> onChanged;
   final bool readOnly;
+  // cleanup 메서드 등록용 콜백
+  final void Function(Future<void> Function({String? content}) cleanupHandler)? registerCleanupHandler;
 
   const QuillEditorField({
     super.key,
@@ -19,6 +24,7 @@ class QuillEditorField extends StatefulWidget {
     this.height,
     required this.onChanged,
     this.readOnly = false,
+    this.registerCleanupHandler,
   });
 
   @override
@@ -31,6 +37,11 @@ class _QuillEditorFieldState extends State<QuillEditorField> {
   late FocusNode _focusNode;
   late ScrollController _scrollController;
 
+  // --- 이미지 업로드 및 임시파일 관리 ---
+  final List<String> _uploadedImageUrls = [];
+  final supabase = Supabase.instance.client;
+  final uuid = Uuid();
+
   @override
   void initState() {
     super.initState();
@@ -38,6 +49,8 @@ class _QuillEditorFieldState extends State<QuillEditorField> {
     _scrollController = ScrollController();
     _initializeController();
     _controller.addListener(_onChanged);
+    // cleanup 메서드 등록
+    widget.registerCleanupHandler?.call(cleanupUnusedImages);
   }
 
   void _initializeController() {
@@ -153,14 +166,29 @@ class _QuillEditorFieldState extends State<QuillEditorField> {
           quill.QuillToolbar.simple(
             configurations: quill.QuillSimpleToolbarConfigurations(
               controller: _controller,
-              // 이미지 삽입 버튼 포함
-              embedButtons: FlutterQuillEmbeds.toolbarButtons(),
+              // 이미지 삽입 버튼 커스텀
+              embedButtons: [
+                quill.ImageButton(
+                  onImagePickCallback: (file) async {
+                    if (file != null) {
+                      final bytes = await file.readAsBytes();
+                      final fileName = file.name;
+                      // userId, unionId는 필요시 외부에서 전달받아야 함
+                      final url = await _onImageUploadToSupabase(bytes, fileName);
+                      return url;
+                    }
+                    return null;
+                  },
+                ),
+                ...FlutterQuillEmbeds.toolbarButtons(),
+              ],
             ),
           ),
         
         // 에디터 영역
         Container(
           height: widget.height ?? 300,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey.shade300),
             borderRadius: BorderRadius.circular(4),
@@ -180,6 +208,56 @@ class _QuillEditorFieldState extends State<QuillEditorField> {
         ),
       ],
     );
+  }
+
+  // 이미지 업로드 핸들러
+  Future<String?> _onImageUploadToSupabase(Uint8List fileBytes, String fileName, {String? mimeType, String? userId, String? unionId}) async {
+    try {
+      final storagePath = 'post-upload/temp/[36m${uuid.v4()}_$fileName[0m';
+      await supabase.storage.from('post-upload').uploadBinary(storagePath, fileBytes);
+      final publicUrl = supabase.storage.from('post-upload').getPublicUrl(storagePath);
+      _uploadedImageUrls.add(publicUrl);
+      // attachments 테이블에 임시 레코드 생성 (target_id는 null)
+      await supabase.from('attachments').insert({
+        'union_id': unionId ?? '',
+        'target_table': 'posts',
+        'target_id': null,
+        'file_url': publicUrl,
+        'file_name': fileName,
+        'file_type': mimeType,
+        'uploaded_by': userId ?? '',
+      });
+      return publicUrl;
+    } catch (e) {
+      debugPrint('이미지 업로드 실패: $e');
+      return null;
+    }
+  }
+
+  // cleanup: content 내에 없는 이미지는 Storage/attachments에서 삭제
+  Future<void> cleanupUnusedImages({String? content}) async {
+    final usedUrls = content != null ? extractImageUrlsFromContent(content) : [];
+    for (final url in _uploadedImageUrls) {
+      if (content == null || !usedUrls.contains(url)) {
+        final path = extractPathFromUrl(url);
+        await supabase.storage.from('post-upload').remove([path]);
+        await supabase.from('attachments').delete().eq('file_url', url);
+      }
+    }
+    _uploadedImageUrls.clear();
+  }
+
+  // HTML content에서 이미지 URL 추출
+  List<String> extractImageUrlsFromContent(String content) {
+    final regex = RegExp(r'<img[^>]+src=["']([^"']+)["']', caseSensitive: false);
+    return regex.allMatches(content).map((m) => m.group(1)!).toList();
+  }
+
+  // public URL에서 storage 내부 경로 추출
+  String extractPathFromUrl(String url) {
+    final uri = Uri.parse(url);
+    final idx = uri.pathSegments.indexOf('post-upload');
+    return uri.pathSegments.skip(idx).join('/');
   }
 }
 

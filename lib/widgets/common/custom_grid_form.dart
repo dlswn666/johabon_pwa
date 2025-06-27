@@ -1,30 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'form_field_row.dart';
 import 'attachment_field.dart';
 import 'quill_editor_field.dart';
 import 'dart:convert';
+
+enum FormFieldType {
+    input,
+    dropdown,
+    checkbox,
+    checkboxGroup,
+    radio,
+    datepicker,
+    attachment,
+    htmlEditor,
+    quillEditor,
+}
+
+class DropdownOption {
+    final String label;
+    final dynamic value;
+    DropdownOption({required this.label, required this.value});
+}
 
 class FormFieldConfig {
     final String keyName;
     final String label;
     final FormFieldType type;
     final dynamic value;
-    final List<String>? options;
+    final List<DropdownOption>? options;
     final double? height; // HTML 에디터용 높이
     final String? hintText; // HTML 에디터용 힌트 텍스트
     final Widget? customWidget; // 커스텀 위젯
+    final void Function(Future<void> Function({String? content}) cleanupHandler)? registerCleanupHandler;
 
     FormFieldConfig({
         required this.keyName,
         required this.label,
         required this.type,
         this.value,
-        this.options,
+        List<dynamic>? options, // String 또는 DropdownOption 모두 허용
         this.height,
         this.hintText,
         this.customWidget,
-    });
+        this.registerCleanupHandler,
+    }) : options = options == null
+            ? null
+            : options.isNotEmpty && options.first is! DropdownOption
+                ? options.map((e) => DropdownOption(label: e.toString(), value: e)).toList()
+                : options.cast<DropdownOption>();
 }
 
 class FormFieldGroup {
@@ -117,7 +140,7 @@ class CustomGridForm extends StatelessWidget {
 
         // 기본 필드 렌더링
         return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
                 SizedBox(
                     width: labelWidth,
@@ -159,26 +182,50 @@ class CustomGridForm extends StatelessWidget {
                     onChanged: (content) {
                         onChanged(field.keyName, content);
                     },
+                    registerCleanupHandler: field.registerCleanupHandler,
                 );
             case FormFieldType.input:
                 return TextFormField(
                     initialValue: formValues[field.keyName]?.toString(),
                     onChanged: (value) => onChanged(field.keyName, value),
-                    decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        enabledBorder: OutlineInputBorder(),
-                        focusedBorder: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                        hintText: field.hintText,
+                        filled: false,
+                        border: const UnderlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFFE0E0E0)),
+                        ),
+                        enabledBorder: const UnderlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFFE0E0E0)),
+                        ),
+                        focusedBorder: const UnderlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFF757575), width: 2),
+                        ),
                     )
                 );
             case FormFieldType.dropdown:
-                return DropdownButtonFormField<String>(
-                    value: formValues[field.keyName]?.toString(),
-                    items: field.options?.map((option) => DropdownMenuItem<String>(value: option, child: Text(option))).toList(),
+                return DropdownButtonFormField<dynamic>(
+                    value: formValues[field.keyName],
+                    items: field.options?.map((option) => DropdownMenuItem<dynamic>(
+                        value: option.value,
+                        child: Text(option.label),
+                    )).toList(),
                     onChanged: (value) => onChanged(field.keyName, value),
                     decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        enabledBorder: OutlineInputBorder(),
-                        focusedBorder: OutlineInputBorder(),
+                        filled: false,
+                        border: OutlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFFE0E0E0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFFE0E0E0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFF757575), width: 2),
+                        ),
+                    ),
+                    dropdownColor: Colors.white,
+                    style: const TextStyle(
+                        fontSize: 16,
+                        fontFamily: 'Wanted Sans',
                     ),
                 );
             case FormFieldType.checkbox:
@@ -197,17 +244,17 @@ class CustomGridForm extends StatelessWidget {
                     runSpacing: 4,
                     children: field.options?.map((option) {
                         final selectedList = (formValues[field.keyName] ?? []) as List<String>;
-                        final isSelected = selectedList.contains(option);
+                        final isSelected = selectedList.contains(option.label);
 
                         return FilterChip(
-                            label: Text(option),
+                            label: Text(option.label),
                             selected: isSelected,
                             onSelected: (bool selected) {
                                 final updatedList = [...selectedList];
                                 if (selected) {
-                                    updatedList.add(option);
+                                    updatedList.add(option.label);
                                 } else {
-                                    updatedList.remove(option);
+                                    updatedList.remove(option.label);
                                 }
                                 onChanged(field.keyName, updatedList);
                             },
@@ -222,11 +269,11 @@ class CustomGridForm extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children:[
                                 Radio<String>(
-                                    value: option,
+                                    value: option.label,
                                     groupValue: formValues[field.keyName],
                                     onChanged: (value) => onChanged(field.keyName, value),
                                 ),
-                                Text(option)
+                                Text(option.label)
                             ],
                         );
                     }).toList() ?? [],
@@ -410,7 +457,7 @@ class CustomGroupedForm extends StatelessWidget {
 
         // 기본 필드 렌더링
         return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
                 SizedBox(
                     width: labelWidth,
@@ -452,26 +499,45 @@ class CustomGroupedForm extends StatelessWidget {
                     onChanged: (content) {
                         onChanged(field.keyName, content);
                     },
+                    registerCleanupHandler: field.registerCleanupHandler,
                 );
             case FormFieldType.input:
                 return TextFormField(
                     initialValue: formValues[field.keyName]?.toString(),
                     onChanged: (value) => onChanged(field.keyName, value),
-                    decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        enabledBorder: OutlineInputBorder(),
-                        focusedBorder: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                        hintText: field.hintText,
+                        filled: false,
+                        border: const UnderlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFFE0E0E0)),
+                        ),
+                        enabledBorder: const UnderlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFFE0E0E0)),
+                        ),
+                        focusedBorder: const UnderlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFF757575), width: 2),
+                        ),
                     )
                 );
             case FormFieldType.dropdown:
-                return DropdownButtonFormField<String>(
-                    value: formValues[field.keyName]?.toString(),
-                    items: field.options?.map((option) => DropdownMenuItem<String>(value: option, child: Text(option))).toList(),
+                return DropdownButtonFormField<dynamic>(
+                    value: formValues[field.keyName],
+                    items: field.options?.map((option) => DropdownMenuItem<dynamic>(
+                        value: option.value,
+                        child: Text(option.label),
+                    )).toList(),
                     onChanged: (value) => onChanged(field.keyName, value),
-                    decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        enabledBorder: OutlineInputBorder(),
-                        focusedBorder: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                        filled: false,
+                        border: const UnderlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFFE0E0E0)),
+                        ),
+                        enabledBorder: const UnderlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFFE0E0E0)),
+                        ),
+                        focusedBorder: const UnderlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFF757575), width: 2),
+                        ),
                     ),
                 );
             case FormFieldType.checkbox:
@@ -490,17 +556,17 @@ class CustomGroupedForm extends StatelessWidget {
                     runSpacing: 4,
                     children: field.options?.map((option) {
                         final selectedList = (formValues[field.keyName] ?? []) as List<String>;
-                        final isSelected = selectedList.contains(option);
+                        final isSelected = selectedList.contains(option.label);
 
                         return FilterChip(
-                            label: Text(option),
+                            label: Text(option.label),
                             selected: isSelected,
                             onSelected: (bool selected) {
                                 final updatedList = [...selectedList];
                                 if (selected) {
-                                    updatedList.add(option);
+                                    updatedList.add(option.label);
                                 } else {
-                                    updatedList.remove(option);
+                                    updatedList.remove(option.label);
                                 }
                                 onChanged(field.keyName, updatedList);
                             },
@@ -515,11 +581,11 @@ class CustomGroupedForm extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children:[
                                 Radio<String>(
-                                    value: option,
+                                    value: option.label,
                                     groupValue: formValues[field.keyName],
                                     onChanged: (value) => onChanged(field.keyName, value),
                                 ),
-                                Text(option)
+                                Text(option.label)
                             ],
                         );
                     }).toList() ?? [],

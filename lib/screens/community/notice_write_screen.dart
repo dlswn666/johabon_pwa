@@ -6,8 +6,8 @@ import 'package:johabon_pwa/utils/responsive_layout.dart';
 import 'package:johabon_pwa/widgets/common/ad_banner_widget.dart';
 import 'package:html_editor_enhanced/html_editor.dart';
 import 'package:johabon_pwa/widgets/common/custom_grid_form.dart';
-import 'package:johabon_pwa/widgets/common/form_field_row.dart';
 import 'dart:typed_data';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class NoticeWriteScreen extends StatefulWidget {
   const NoticeWriteScreen({super.key});
@@ -27,6 +27,32 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
   bool _isPrivate = false;
   List<PlatformFile> _pickedFiles = [];
   List<Map<String, dynamic>> _droppedFiles = [];
+
+  // --- 추가: 카테고리 옵션 및 선택값 상태 ---
+  List<DropdownOption> _subcategoryOptions = [];
+  dynamic _selectedSubcategory;
+  Map<String, dynamic> _formValues = {};
+
+  // --- 추가: QuillEditorField cleanup 핸들러 ---
+  late Future<void> Function({String? content}) cleanupEditorImages;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSubcategories();
+  }
+
+  Future<void> _fetchSubcategories() async {
+    final response = await Supabase.instance.client
+        .from('post_subcategories')
+        .select('id, name')
+        .eq('category', 'notice');
+    setState(() {
+      _subcategoryOptions = (response as List)
+          .map((e) => DropdownOption(label: e['name'], value: e['id']))
+          .toList();
+    });
+  }
 
   @override
   void dispose() {
@@ -109,6 +135,11 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
       return;
     }
 
+    // 글 저장 전: 에디터 이미지 cleanup (content 내에 없는 이미지는 삭제)
+    if (cleanupEditorImages != null) {
+      await cleanupEditorImages(content: content);
+    }
+
     // TODO: 서버에 데이터 저장 구현
     print('제목: $title');
     print('내용: $content');
@@ -129,6 +160,11 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
     final title = _titleController.text;
     final content = await _contentController.getText();
     
+    // 글 임시저장 전: 에디터 이미지 cleanup (content 내에 없는 이미지는 삭제)
+    if (cleanupEditorImages != null) {
+      await cleanupEditorImages(content: content);
+    }
+
     // TODO: 임시저장 기능 구현
     print('임시저장 - 제목: $title');
     print('임시저장 - 내용: $content');
@@ -231,15 +267,22 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
           const SizedBox(height: 24),
 
           CustomGroupedForm(
-            formValues: {},
-            onChanged: (key, value) => setState(() {}),
+            formValues: _formValues,
+            onChanged: (key, value) {
+              setState(() {
+                _formValues[key] = value;
+                if (key == 'subcategory') {
+                  _selectedSubcategory = value;
+                }
+              });
+            },
             groups: [
               FormFieldGroup(
                 columnCount: 1,
                 fields: [
                   FormFieldConfig(
                     keyName: 'title',
-                    label: '제목1',
+                    label: '제목',
                     type: FormFieldType.input,
                   )
                 ]
@@ -248,14 +291,14 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
                 columnCount: 2,
                 fields: [
                   FormFieldConfig(
-                    keyName: 'isNotice',
-                    label: '공지1',
+                    keyName: 'subcategory',
+                    label: '카테고리',
                     type: FormFieldType.dropdown,
-                    options: ['일반', '지출 내역', '회의 내용'],
+                    options: _subcategoryOptions,
                   ),
                   FormFieldConfig(
                     keyName: 'isAlimTalk',
-                    label: '알림톡 발송1',
+                    label: '알림톡 발송',
                     type: FormFieldType.checkbox,
                     value: false,
                   ),
@@ -266,13 +309,16 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
                 fields: [
                   FormFieldConfig(
                     keyName: 'attachFile',
-                    label: '첨부파일1',
+                    label: '첨부파일',
                     type: FormFieldType.attachment,
                   ),
                   FormFieldConfig(
                     keyName: 'content',
-                    label: '내용1',
+                    label: '내용',
                     type: FormFieldType.quillEditor,
+                    registerCleanupHandler: (cleanup) {
+                      cleanupEditorImages = cleanup;
+                    },
                   ),
                 ],
               ),
