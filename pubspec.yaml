@@ -78,6 +78,7 @@ dependencies:
     html_editor_enhanced: ^2.6.0
     flutter_quill: ^9.6.0
     flutter_quill_extensions: ^9.6.0
+    flutter_dotenv: ^5.1.0
 
 dev_dependencies:
     flutter_test:

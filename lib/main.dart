@@ -10,16 +10,31 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_strategy/url_strategy.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:flutter_quill/flutter_quill.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
   // URL에서 # 기호를 제거하기 위한 설정
   setPathUrlStrategy();
 
+  // 환경 변수 로드
+  try {
+    await dotenv.load(fileName: ".env");
+    print("[Main] 환경 변수 로드 완료");
+  } catch (e) {
+    print("[Main] 환경 변수 로드 실패: $e");
+    // 개발 환경에서 .env 파일이 없을 경우 기본값 사용
+  }
+
+  // Supabase 초기화 (환경 변수 사용)
+  final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? 'https://xschknzenjbtxddkxrnq.supabase.co';
+  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhzY2hrbnplbmpidHhkZGt4cm5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczNzgzNDgsImV4cCI6MjA2Mjk1NDM0OH0.EASwXT9GTV6kpqAZIkY0WUxGnTJ3BBHF3m0GWmdSwqQ';
+  
   await Supabase.initialize(
-    url: 'https://xschknzenjbtxddkxrnq.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhzY2hrbnplbmpidHhkZGt4cm5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczNzgzNDgsImV4cCI6MjA2Mjk1NDM0OH0.EASwXT9GTV6kpqAZIkY0WUxGnTJ3BBHF3m0GWmdSwqQ',
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey,
   );
+  print("[Main] Supabase 초기화 완료");
   
   // 전체 화면 모드 설정
   SystemChrome.setEnabledSystemUIMode(
