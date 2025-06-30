@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:flutter_quill_extensions/flutter_quill_extensions.dart';    
+import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -110,11 +111,18 @@ class _QuillEditorFieldState extends State<QuillEditorField> {
       _controller.removeListener(_onChanged);
       _controller.document = newDocument;
       
-      // 커서 위치 유지 (문서 길이 체크)
+      // 커서 위치 복원/조정
       final newLength = newDocument.length;
-      if (currentSelection.baseOffset <= newLength) {
-        _controller.updateSelection(currentSelection, quill.ChangeSource.local);
+      final newSelection = currentSelection.copyWith(
+        baseOffset: currentSelection.baseOffset.clamp(0, newLength - 1),
+        extentOffset: currentSelection.extentOffset.clamp(0, newLength - 1),
+      );
+
+      // 복원된 selection이 유효한 경우에만 업데이트
+      if (newSelection.isValid && newSelection.isNormalized) {
+        _controller.updateSelection(newSelection, quill.ChangeSource.local);
       } else {
+        // 유효하지 않으면 문서 끝으로 커서 이동
         _controller.updateSelection(
           TextSelection.collapsed(offset: newLength - 1),
           quill.ChangeSource.local,
@@ -166,21 +174,15 @@ class _QuillEditorFieldState extends State<QuillEditorField> {
           quill.QuillToolbar.simple(
             configurations: quill.QuillSimpleToolbarConfigurations(
               controller: _controller,
-              // 이미지 삽입 버튼 커스텀
-              embedButtons: [
-                quill.ImageButton(
-                  onImagePickCallback: (file) async {
-                    if (file != null) {
-                      final bytes = await file.readAsBytes();
-                      final fileName = file.name;
-                      // userId, unionId는 필요시 외부에서 전달받아야 함
-                      final url = await _onImageUploadToSupabase(bytes, fileName);
-                      return url;
-                    }
-                    return null;
-                  },
+              // flutter_quill_extensions의 기본 임베드 버튼들 사용
+              embedButtons: FlutterQuillEmbeds.toolbarButtons(),
+              // 커스텀 이미지 업로드 버튼 추가
+              customButtons: [
+                quill.QuillToolbarCustomButtonOptions(
+                  icon: const Icon(Icons.add_photo_alternate),
+                  tooltip: '이미지 업로드',
+                  onPressed: _showImageUploadDialog,
                 ),
-                ...FlutterQuillEmbeds.toolbarButtons(),
               ],
             ),
           ),
@@ -210,12 +212,54 @@ class _QuillEditorFieldState extends State<QuillEditorField> {
     );
   }
 
+  // 이미지 업로드 다이얼로그 표시
+  Future<void> _showImageUploadDialog() async {
+    final picker = ImagePicker();
+    final XFile? file = await picker.pickImage(source: ImageSource.gallery);
+    
+    if (file != null) {
+      try {
+        final bytes = await file.readAsBytes();
+        final url = await _onImageUploadToSupabase(bytes, file.name);
+        
+        if (url != null) {
+          // 현재 커서 위치에 이미지 삽입
+          final index = _controller.selection.baseOffset;
+          _controller.document.insert(index, quill.BlockEmbed.image(url));
+          
+          // 커서를 이미지 다음으로 이동
+          _controller.updateSelection(
+            TextSelection.collapsed(offset: index + 1),
+            quill.ChangeSource.local,
+          );
+        } else {
+          // 업로드 실패 알림
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('이미지 업로드에 실패했습니다.')),
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('이미지 선택 및 업로드 실패: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('이미지 업로드 중 오류가 발생했습니다.')),
+          );
+        }
+      }
+    }
+  }
+
   // 이미지 업로드 핸들러
   Future<String?> _onImageUploadToSupabase(Uint8List fileBytes, String fileName, {String? mimeType, String? userId, String? unionId}) async {
     try {
-      final storagePath = 'post-upload/temp/[36m${uuid.v4()}_$fileName[0m';
-      await supabase.storage.from('post-upload').uploadBinary(storagePath, fileBytes);
-      final publicUrl = supabase.storage.from('post-upload').getPublicUrl(storagePath);
+      final storagePath = 'post-upload/temp/${uuid.v4()}_$fileName';
+      await supabase.storage
+          .from('post-upload')
+          .uploadBinary(storagePath, fileBytes);
+      final publicUrl =
+          supabase.storage.from('post-upload').getPublicUrl(storagePath);
       _uploadedImageUrls.add(publicUrl);
       // attachments 테이블에 임시 레코드 생성 (target_id는 null)
       await supabase.from('attachments').insert({
@@ -236,28 +280,61 @@ class _QuillEditorFieldState extends State<QuillEditorField> {
 
   // cleanup: content 내에 없는 이미지는 Storage/attachments에서 삭제
   Future<void> cleanupUnusedImages({String? content}) async {
-    final usedUrls = content != null ? extractImageUrlsFromContent(content) : [];
-    for (final url in _uploadedImageUrls) {
-      if (content == null || !usedUrls.contains(url)) {
+    final usedUrls =
+        content != null ? _extractImageUrlsFromDelta(content) : <String>[];
+
+    final urlsToDelete =
+        _uploadedImageUrls.where((url) => !usedUrls.contains(url)).toList();
+
+    for (final url in urlsToDelete) {
+      try {
         final path = extractPathFromUrl(url);
-        await supabase.storage.from('post-upload').remove([path]);
-        await supabase.from('attachments').delete().eq('file_url', url);
+        if (path.isNotEmpty) {
+          await supabase.storage.from('post-upload').remove([path]);
+          await supabase.from('attachments').delete().eq('file_url', url);
+        }
+      } catch (e) {
+        debugPrint('사용하지 않는 이미지 삭제 실패: $url, 오류: $e');
       }
     }
-    _uploadedImageUrls.clear();
+    _uploadedImageUrls.removeWhere((url) => urlsToDelete.contains(url));
   }
 
-  // HTML content에서 이미지 URL 추출
-  List<String> extractImageUrlsFromContent(String content) {
-    final regex = RegExp(r'<img[^>]+src=["']([^"']+)["']', caseSensitive: false);
-    return regex.allMatches(content).map((m) => m.group(1)!).toList();
+  // Delta JSON content에서 이미지 URL 추출
+  List<String> _extractImageUrlsFromDelta(String deltaJson) {
+    if (deltaJson.isEmpty) {
+      return [];
+    }
+    try {
+      final List<dynamic> ops = jsonDecode(deltaJson);
+      return ops
+          .where((op) =>
+              op is Map<String, dynamic> &&
+              op['insert'] is Map<String, dynamic> &&
+              op['insert']['image'] is String)
+          .map((op) => op['insert']['image'] as String)
+          .toList();
+    } catch (e) {
+      debugPrint('Delta JSON에서 이미지 URL 추출 실패: $e');
+      return [];
+    }
   }
 
   // public URL에서 storage 내부 경로 추출
   String extractPathFromUrl(String url) {
-    final uri = Uri.parse(url);
-    final idx = uri.pathSegments.indexOf('post-upload');
-    return uri.pathSegments.skip(idx).join('/');
+    try {
+      final uri = Uri.parse(url);
+      final pathSegments = uri.pathSegments;
+      const bucketName = 'post-upload';
+      final bucketIndex = pathSegments.indexOf(bucketName);
+
+      if (bucketIndex != -1 && bucketIndex < pathSegments.length - 1) {
+        return pathSegments.sublist(bucketIndex + 1).join('/');
+      }
+    } catch (e) {
+      debugPrint('URL 경로 추출 실패: $e');
+    }
+    return '';
   }
 }
 
