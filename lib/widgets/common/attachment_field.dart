@@ -4,10 +4,14 @@ import 'package:flutter_dropzone/flutter_dropzone.dart';
 
 class AttachmentField extends StatefulWidget {
     final void Function(List<dynamic>)? onChanged;
+    final List<Map<String, dynamic>>? initialAttachments;
+    final void Function(Map<String, dynamic> attachment)? onDeleteAttachment;
 
     const AttachmentField({
         super.key,
-        this.onChanged
+        this.onChanged,
+        this.initialAttachments,
+        this.onDeleteAttachment,
     });
 
     @override
@@ -66,6 +70,35 @@ class _AttachmentFieldState extends State<AttachmentField> {
 
     @override
     Widget build(BuildContext context){
+        // 기존 첨부파일 + 새로 추가된 파일을 한 리스트로 합침
+        final List<_AttachmentListItem> allFiles = [
+          // 기존 첨부파일
+          if (widget.initialAttachments != null)
+            ...widget.initialAttachments!.map((att) => _AttachmentListItem(
+              name: att['file_name'] ?? '',
+              size: att['file_size'] != null ? '${(att['file_size'] / 1024).toStringAsFixed(2)} KB' : '',
+              onDelete: () {
+                if (widget.onDeleteAttachment != null) {
+                  widget.onDeleteAttachment!(att);
+                }
+              },
+              isInitial: true,
+            )),
+          // 새로 추가된 파일 (FilePicker)
+          ..._pickedFiles.asMap().entries.map((entry) => _AttachmentListItem(
+            name: entry.value.name,
+            size: '${(entry.value.size / 1024).toStringAsFixed(2)} KB',
+            onDelete: () => _removePickedFile(entry.key),
+            isInitial: false,
+          )),
+          // 새로 추가된 파일 (Dropzone)
+          ..._droppedFiles.asMap().entries.map((entry) => _AttachmentListItem(
+            name: entry.value['name'],
+            size: '${(entry.value['size'] / 1024).toStringAsFixed(2)} KB',
+            onDelete: () => _removeDroppedFile(entry.key),
+            isInitial: false,
+          )),
+        ];
         return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -112,28 +145,24 @@ class _AttachmentFieldState extends State<AttachmentField> {
                         ],
                     ),
                 ),
-                if(_pickedFiles.isNotEmpty || _droppedFiles.isNotEmpty)
-                    Padding(
-                        padding: const EdgeInsets.only(top: 16),
-                        child: Column(
-                            children:[
-                                ..._pickedFiles.asMap().entries.map(
-                                    (entry) => _buildFileItem(
-                                        entry.value.name,
-                                        '${(entry.value.size / 1024).toStringAsFixed(2)} KB',
-                                        () => _removePickedFile(entry.key)
-                                    )
-                                ),
-                                ..._droppedFiles.asMap().entries.map(
-                                    (entry) => _buildFileItem(
-                                        entry.value['name'],
-                                        '${(entry.value['size'] / 1024).toStringAsFixed(2)} KB',
-                                        () => _removeDroppedFile(entry.key)
-                                    )
-                                )
-                            ]
-                        )
-                    )
+                if(allFiles.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Column(
+                      children: allFiles.map((item) => ListTile(
+                        dense: true,
+                        title: Text(item.name, style: const TextStyle(fontSize: 14, fontFamily: 'Wanted Sans')),
+                        subtitle: Text(item.size, style: const TextStyle(fontSize: 12, color: Colors.grey, fontFamily: 'Wanted Sans')),
+                        trailing: IconButton(
+                          icon: item.isInitial
+                            ? const Icon(Icons.delete, color: Colors.red, size: 18)
+                            : const Icon(Icons.close, color: Colors.grey, size: 18),
+                          tooltip: '첨부파일 삭제',
+                          onPressed: item.onDelete,
+                        ),
+                      )).toList(),
+                    ),
+                  ),
             ]
         );
     }
@@ -149,4 +178,17 @@ class _AttachmentFieldState extends State<AttachmentField> {
             ),
         );
     }
+}
+
+class _AttachmentListItem {
+  final String name;
+  final String size;
+  final VoidCallback onDelete;
+  final bool isInitial;
+  _AttachmentListItem({
+    required this.name,
+    required this.size,
+    required this.onDelete,
+    required this.isInitial,
+  });
 }

@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import 'package:johabon_pwa/providers/auth_provider.dart';
 import 'package:johabon_pwa/providers/union_provider.dart';
 import 'package:uuid/uuid.dart';
+import 'package:johabon_pwa/widgets/common/attachment_field.dart';
 
 class NoticeWriteScreen extends StatefulWidget {
   const NoticeWriteScreen({super.key});
@@ -30,6 +31,8 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
   bool _isPrivate = false;
   List<PlatformFile> _pickedFiles = [];
   List<Map<String, dynamic>> _droppedFiles = [];
+  // 삭제 예약된 기존 첨부파일 리스트
+  List<Map<String, dynamic>> _attachmentsToDelete = [];
 
   // --- 추가: 카테고리 옵션 및 선택값 상태 ---
   List<DropdownOption> _subcategoryOptions = [];
@@ -60,7 +63,7 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
       if (args is Map) {
         _isEdit = args['isEdit'] == true;
         _initialData = args['initialData'] as Map<String, dynamic>?;
-        _initialAttachments = (args['attachments'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+        // _initialAttachments는 DB에서 조회로 대체
         if (_isEdit && _initialData != null) {
           // 제목, 내용, 카테고리 등 폼 값 세팅
           _formValues['title'] = _initialData!['title'] ?? '';
@@ -68,7 +71,11 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
           _formValues['subcategory'] = _initialData!['subcategory_id'] ?? '';
           _titleController.text = _initialData!['title'] ?? '';
           _contentController.setText(_initialData!['content'] ?? '');
-          // 첨부파일은 별도 처리 필요 (UI에 맞게 추가)
+          // 첨부파일 목록 DB에서 조회
+          final postId = _initialData!['id'];
+          if (postId != null) {
+            _fetchAttachments(postId);
+          }
         }
       }
       _didInitFromArgs = true;
@@ -135,6 +142,25 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
       ];
       _isLoadingCategories = false;
     });
+  }
+
+  // 첨부파일 목록을 DB에서 조회하는 함수
+  Future<void> _fetchAttachments(String postId) async {
+    try {
+      final response = await Supabase.instance.client
+          .from('attachments')
+          .select('*')
+          .eq('target_table', 'posts')
+          .eq('target_id', postId)
+          .order('uploaded_at');
+      if (response != null && response is List) {
+        setState(() {
+          _initialAttachments = List<Map<String, dynamic>>.from(response);
+        });
+      }
+    } catch (e) {
+      print('첨부파일 목록 조회 오류: $e');
+    }
   }
 
   @override
@@ -238,7 +264,7 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
 
       final postId = response['id'];
       
-      // 첨부파일 처리
+      // 첨부파일 처리 (새로 추가된 파일만 업로드)
       await _handleAttachments(postId);
 
       // 글 저장 후: 에디터 이미지 cleanup (content 내에 없는 이미지는 삭제)
@@ -364,6 +390,8 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
         // 개별 파일 실패는 전체 저장을 중단하지 않음
       }
     }
+    // 첨부파일 목록 갱신
+    await _fetchAttachments(postId);
   }
 
   // 임시저장
@@ -396,6 +424,22 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
     
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('임시저장된 글을 불러왔습니다')),
+    );
+  }
+
+  // 첨부파일 삭제 함수 (이제 UI에서만 제거, 실제 삭제는 수정 버튼에서)
+  Future<void> _deleteAttachment(Map<String, dynamic> attachment) async {
+    // UI에서만 제거, 실제 삭제는 수정 버튼에서 처리
+    setState(() {
+      _initialAttachments.removeWhere((a) => a['id'] == attachment['id']);
+      // 중복 추가 방지
+      if (!_attachmentsToDelete.any((a) => a['id'] == attachment['id'])) {
+        _attachmentsToDelete.add(attachment);
+      }
+    });
+    // 안내 메시지(선택)
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('수정 시 첨부파일이 삭제됩니다.')),
     );
   }
 
@@ -541,6 +585,26 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
                     keyName: 'attachFile',
                     label: '첨부파일',
                     type: FormFieldType.attachment,
+                    customWidget: AttachmentField(
+                      initialAttachments: _initialAttachments,
+                      onDeleteAttachment: _deleteAttachment,
+                      onChanged: (value) {
+                        // 기존 onChanged 로직과 동일하게 처리
+                        setState(() {
+                          _pickedFiles.clear();
+                          _droppedFiles.clear();
+                          for (final file in value) {
+                            if (file is PlatformFile) {
+                              _pickedFiles.add(file);
+                            } else if (file is Map<String, dynamic>) {
+                              _droppedFiles.add(file);
+                            }
+                          }
+                          print('[첨부파일] _pickedFiles 업데이트: ${_pickedFiles.length}개');
+                          print('[첨부파일] _droppedFiles 업데이트: ${_droppedFiles.length}개');
+                        });
+                      },
+                    ),
                   ),
                   FormFieldConfig(
                     keyName: 'content',
@@ -554,6 +618,7 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
               ),
             ],
           ),
+          // 첨부파일 목록 UI를 첨부파일 입력란 바로 아래에 직접 배치
           const SizedBox(height: 32),
           // 버튼 영역
           Row(
@@ -646,12 +711,146 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
     );
   }
 
-  // 수정 모드일 때 호출될 게시글 업데이트 함수 (임시)
+  // 수정 모드일 때 호출될 게시글 업데이트 함수 (구현)
   Future<void> _updatePost() async {
-    // TODO: 실제 수정 로직 구현 필요
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('수정 기능은 아직 구현되지 않았습니다.')),
+    // 폼 데이터 가져오기
+    final title = _formValues['title']?.toString() ?? '';
+    final subcategoryId = _formValues['subcategory'];
+    final isAlimTalk = _formValues['isAlimTalk'] ?? false;
+    final content = _formValues['content']?.toString() ?? '';
+
+    // 유효성 검사
+    if (title.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('제목을 입력해주세요')),
+      );
+      return;
+    }
+    if (content.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('내용을 입력해주세요')),
+      );
+      return;
+    }
+    if (subcategoryId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('카테고리를 선택해주세요')),
+      );
+      return;
+    }
+
+    // 로딩 시작
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      },
     );
+
+    try {
+      // 현재 사용자 및 조합 정보 가져오기
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final unionProvider = Provider.of<UnionProvider>(context, listen: false);
+
+      if (authProvider.currentUser == null) {
+        throw Exception('로그인 정보가 없습니다.');
+      }
+      if (unionProvider.currentUnion == null) {
+        throw Exception('조합 정보가 없습니다.');
+      }
+
+      // 수정할 게시글의 ID
+      final postId = _initialData?['id'];
+      if (postId == null) {
+        throw Exception('수정할 게시글 정보를 찾을 수 없습니다.');
+      }
+
+      // 'notice' 카테고리 ID 찾기
+      final categoryResponse = await Supabase.instance.client
+          .from('post_categories')
+          .select('id')
+          .eq('key', 'notice')
+          .single();
+      if (categoryResponse == null || categoryResponse['id'] == null) {
+        throw Exception('공지사항 카테고리를 찾을 수 없습니다.');
+      }
+      final categoryId = categoryResponse['id'];
+
+      // 게시글 데이터 준비 (union_id, created_by 등은 변경하지 않음)
+      final postData = {
+        'title': title,
+        'content': content,
+        'category_id': categoryId,
+        'subcategory_id': subcategoryId,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      // 게시글 업데이트
+      await Supabase.instance.client
+          .from('posts')
+          .update(postData)
+          .eq('id', postId);
+
+      // 첨부파일 추가(새로 첨부된 파일만 업로드)
+      await _handleAttachments(postId);
+
+      // 에디터 이미지 cleanup (content 내에 없는 이미지는 삭제)
+      if (cleanupEditorImages != null) {
+        await cleanupEditorImages(content: content);
+      }
+
+      // 1. 삭제 예약된 기존 첨부파일 실제 삭제
+      for (final attachment in _attachmentsToDelete) {
+        try {
+          final fileUrl = attachment['file_url'] as String?;
+          final id = attachment['id'] as String?;
+          if (fileUrl == null || id == null) continue;
+          // Storage 경로 추출
+          final uri = Uri.parse(fileUrl);
+          final segments = uri.pathSegments;
+          final storageIndex = segments.indexOf('post-upload');
+          if (storageIndex == -1) throw Exception('Storage 경로 파싱 실패');
+          final storagePath = segments.sublist(storageIndex + 1).join('/');
+          // Storage에서 파일 삭제
+          await Supabase.instance.client.storage
+            .from('post-upload')
+            .remove([storagePath]);
+          // attachments 테이블에서 row 삭제
+          await Supabase.instance.client
+            .from('attachments')
+            .delete()
+            .eq('id', id);
+        } catch (e) {
+          print('첨부파일 실제 삭제 오류: $e');
+        }
+      }
+      _attachmentsToDelete.clear();
+
+      // 로딩 종료
+      Navigator.of(context).pop();
+
+      // 성공 메시지
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('게시글이 수정되었습니다')),
+      );
+      // 게시글 목록으로 이동 (수정 성공 결과 전달)
+      Navigator.pop(context, true);
+    } catch (e) {
+      // 로딩 종료
+      Navigator.of(context).pop();
+      // 에러 메시지
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('게시글 수정 중 오류가 발생했습니다: ${e.toString()}')),
+      );
+      print('게시글 수정 오류: $e');
+    }
   }
 
   Widget _buildCheckbox(String label, bool value, Function(bool?) onChanged) {
