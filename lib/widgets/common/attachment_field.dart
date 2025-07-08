@@ -38,10 +38,13 @@ class _AttachmentFieldState extends State<AttachmentField> {
     Future<void> _onFileDrop(dynamic ev) async{
         final name = await _dropzoneViewController.getFilename(ev);
         final size = await _dropzoneViewController.getFileSize(ev);
+        final mime = await _dropzoneViewController.getFileMIME(ev);
         setState((){
             _droppedFiles.add({
                 'name': name,
                 'size': size,
+                'mime': mime,
+                'event': ev,
             });
             widget.onChanged?.call([..._pickedFiles, ..._droppedFiles]);
         });

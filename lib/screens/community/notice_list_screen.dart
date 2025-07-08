@@ -6,6 +6,7 @@ import 'package:johabon_pwa/utils/responsive_layout.dart';
 import 'package:johabon_pwa/widgets/common/list_template_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:johabon_pwa/screens/community/notice_write_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 // ignore: uri_does_not_exist
 import 'dart:js' if (dart.library.io) 'package:johabon_pwa/utils/stub_js.dart' as js;
 import 'dart:convert';
@@ -28,6 +29,24 @@ class NoticeItem implements ListItemInterface {
   final bool hasImage;
   @override
   final bool hasLink;
+  
+  final String? content;
+  final String? unionId;
+  final String? subcategoryId;
+  final String? categoryId;
+  final bool popup;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final String? updatedBy;
+  final String? _categoryName;
+  final String? _subcategoryName;
+
+  // ListItemInterface의 categoryName, subcategoryName getter 오버라이드
+  @override
+  String? get categoryName => _categoryName;
+  
+  @override
+  String? get subcategoryName => _subcategoryName;
 
   NoticeItem({
     required this.id,
@@ -38,7 +57,43 @@ class NoticeItem implements ListItemInterface {
     this.isLocked = false,
     this.hasImage = false,
     this.hasLink = false,
-  });
+    this.content,
+    this.unionId,
+    this.subcategoryId,
+    this.categoryId,
+    this.popup = false,
+    this.createdAt,
+    this.updatedAt,
+    this.updatedBy,
+    String? categoryName,
+    String? subcategoryName,
+  }) : _categoryName = categoryName,
+       _subcategoryName = subcategoryName;
+
+  factory NoticeItem.fromJson(Map<String, dynamic> json) {
+    return NoticeItem(
+      id: json['id'] ?? '',
+      title: json['title'] ?? '',
+      author: json['created_by'] ?? '',
+      date: json['created_at'] != null ? 
+        DateTime.parse(json['created_at']).toLocal().toString().split(' ')[0] :
+        '',
+      isPinned: json['popup'] ?? false,
+      isLocked: false,
+      hasImage: json['has_image'] ?? false,
+      hasLink: json['has_attachments'] ?? false,
+      content: json['content'],
+      unionId: json['union_id'],
+      subcategoryId: json['subcategory_id'],
+      categoryId: json['category_id'],
+      popup: json['popup'] ?? false,
+      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
+      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
+      updatedBy: json['updated_by'],
+      categoryName: json['category_name'],
+      subcategoryName: json['subcategory_name'],
+    );
+  }
 }
 
 class NoticeListScreen extends StatefulWidget {
@@ -53,15 +108,18 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
   int _currentPage = 1;
   final int _itemsPerPage = 10;
   List<NoticeItem> _noticeItems = [];
-  int _totalItems = 85; // 임시로 총 85개 아이템이 있다고 가정
+  int _totalItems = 0;
   String? _currentUserType;
+  bool _isLoading = false;
+  String? _noticesCategoryId;
+  
+  final SupabaseClient _supabase = Supabase.instance.client;
 
   @override
   void initState() {
     super.initState();
-    // 초기 데이터 로드
-    _loadPageData(_currentPage);
     _loadUserType();
+    _loadNoticesCategoryId();
   }
 
   // 사용자 타입 로드
@@ -72,43 +130,247 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
     });
   }
 
+  // 공지사항 카테고리 ID 로드
+  Future<void> _loadNoticesCategoryId() async {
+    try {
+      final response = await _supabase
+          .from('post_categories')
+          .select('id')
+          .eq('key', 'notice')
+          .single();
+      
+      setState(() {
+        _noticesCategoryId = response['id'];
+      });
+      
+      // 카테고리 ID가 로드되면 데이터 로드
+      if (_noticesCategoryId != null) {
+        await _loadPageData(_currentPage);
+      }
+    } catch (e) {
+      print('공지사항 카테고리 ID 로드 실패: $e');
+    }
+  }
+
   // 글쓰기 버튼 클릭 처리
-  void _handleWriteButtonTap() {
-    Navigator.push(
+  void _handleWriteButtonTap() async {
+    final result = await Navigator.push(
       context, 
       MaterialPageRoute(
         builder: (context) => const NoticeWriteScreen(),
       ),
     );
+    
+    // 글쓰기 화면에서 저장 성공 시 리스트 새로고침
+    if (result == true) {
+      await _loadPageData(_currentPage);
+    }
   }
 
-  // 페이지 데이터 로드 (임시 데이터 생성)
-  void _loadPageData(int page) {
+  // 페이지 데이터 로드
+  Future<void> _loadPageData(int page) async {
+    if (_noticesCategoryId == null) return;
+    
     setState(() {
-      _currentPage = page;
-      _noticeItems = List.generate(
-        _itemsPerPage,
-        (index) {
-          final itemIndex = (page - 1) * _itemsPerPage + index;
-          return NoticeItem(
-            id: '$itemIndex',
-            title: '2025년 제${itemIndex + 1}차 대의원회 소집 안내',
-            author: '관리자',
-            date: '2025.05.${20 - (itemIndex % 20)}',
-            isPinned: itemIndex < 2,
-            isLocked: itemIndex % 3 == 0,
-            hasImage: itemIndex % 5 == 0,
-            hasLink: itemIndex % 4 == 0,
-          );
-        },
-      );
+      _isLoading = true;
     });
+
+    try {
+      // 총 개수 조회
+      final countResponse = await _supabase
+          .from('posts')
+          .select('id')
+          .eq('category_id', _noticesCategoryId!)
+          .count();
+      
+      final totalCount = countResponse.count;
+      
+      // 페이지 데이터 조회 (카테고리, 서브카테고리 정보 포함)
+      final dataResponse = await _supabase
+          .from('posts')
+          .select('''
+            *,
+            post_categories!inner(name),
+            post_subcategories(name)
+          ''')
+          .eq('category_id', _noticesCategoryId!)
+          .order('created_at', ascending: false)
+          .range(
+            (page - 1) * _itemsPerPage,
+            page * _itemsPerPage - 1,
+          );
+      
+      // 각 게시글에 대해 첨부파일 개수 확인
+      final List<NoticeItem> items = [];
+      for (final item in dataResponse as List) {
+        // 관계형 데이터 플래튼화
+        final flattenedItem = Map<String, dynamic>.from(item);
+        if (item['post_categories'] != null) {
+          flattenedItem['category_name'] = item['post_categories']['name'];
+        }
+        if (item['post_subcategories'] != null) {
+          flattenedItem['subcategory_name'] = item['post_subcategories']['name'];
+        }
+        
+        // 첨부파일 개수 확인
+        try {
+          final attachmentCount = await _supabase
+              .from('attachments')
+              .select('id')
+              .eq('target_table', 'posts')
+              .eq('target_id', item['id'])
+              .count();
+          
+          flattenedItem['has_attachments'] = (attachmentCount.count > 0);
+        } catch (e) {
+          print('첨부파일 개수 확인 실패: $e');
+          flattenedItem['has_attachments'] = false;
+        }
+        
+        // 콘텐츠에 이미지가 있는지 확인
+        final content = item['content']?.toString() ?? '';
+        flattenedItem['has_image'] = _hasImageInContent(content);
+        
+        items.add(NoticeItem.fromJson(flattenedItem));
+      }
+
+      setState(() {
+        _currentPage = page;
+        _noticeItems = items;
+        _totalItems = totalCount;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('공지사항 데이터 로드 실패: $e');
+      setState(() {
+        _isLoading = false;
+      });
+      
+      // 에러 발생 시 사용자에게 알림
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('공지사항을 불러오는 중 오류가 발생했습니다: $e')),
+        );
+      }
+    }
   }
 
   // 검색 처리
-  void _handleSearch(String category, String keyword) {
-    print('검색: $category - $keyword');
-    // 실제로는 여기서 검색 API를 호출하게 됩니다.
+  Future<void> _handleSearch(String category, String keyword) async {
+    if (_noticesCategoryId == null) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      String searchField = 'title';
+      if (category == '작성자') {
+        searchField = 'created_by';
+      } else if (category == '내용') {
+        searchField = 'content';
+      }
+      
+      // 검색 결과 개수 조회
+      final countResponse = await _supabase
+          .from('posts')
+          .select('id')
+          .eq('category_id', _noticesCategoryId!)
+          .ilike(searchField, '%$keyword%')
+          .count();
+      
+      final totalCount = countResponse.count;
+      
+      // 검색 결과 조회 (카테고리, 서브카테고리 정보 포함)
+      final dataResponse = await _supabase
+          .from('posts')
+          .select('''
+            *,
+            post_categories!inner(name),
+            post_subcategories(name)
+          ''')
+          .eq('category_id', _noticesCategoryId!)
+          .ilike(searchField, '%$keyword%')
+          .order('created_at', ascending: false)
+          .range(0, _itemsPerPage - 1);
+      
+      // 각 게시글에 대해 첨부파일 개수 확인
+      final List<NoticeItem> items = [];
+      for (final item in dataResponse as List) {
+        // 관계형 데이터 플래튼화
+        final flattenedItem = Map<String, dynamic>.from(item);
+        if (item['post_categories'] != null) {
+          flattenedItem['category_name'] = item['post_categories']['name'];
+        }
+        if (item['post_subcategories'] != null) {
+          flattenedItem['subcategory_name'] = item['post_subcategories']['name'];
+        }
+        
+        // 첨부파일 개수 확인
+        try {
+          final attachmentCount = await _supabase
+              .from('attachments')
+              .select('id')
+              .eq('target_table', 'posts')
+              .eq('target_id', item['id'])
+              .count();
+          
+          flattenedItem['has_attachments'] = (attachmentCount.count > 0);
+        } catch (e) {
+          print('첨부파일 개수 확인 실패: $e');
+          flattenedItem['has_attachments'] = false;
+        }
+        
+        // 콘텐츠에 이미지가 있는지 확인
+        final content = item['content']?.toString() ?? '';
+        flattenedItem['has_image'] = _hasImageInContent(content);
+        
+        items.add(NoticeItem.fromJson(flattenedItem));
+      }
+
+      setState(() {
+        _currentPage = 1;
+        _noticeItems = items;
+        _totalItems = totalCount;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('검색 실패: $e');
+      setState(() {
+        _isLoading = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('검색 중 오류가 발생했습니다: $e')),
+        );
+      }
+    }
+  }
+
+  // 콘텐츠에 이미지가 있는지 확인하는 메서드
+  bool _hasImageInContent(String content) {
+    if (content.isEmpty) return false;
+    
+    // HTML img 태그가 있는지 확인
+    if (content.contains('<img')) return true;
+    
+    // 이미지 URL이 있는지 확인 (일반적인 이미지 확장자)
+    final imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
+    for (final ext in imageExtensions) {
+      if (content.toLowerCase().contains(ext)) return true;
+    }
+    
+    // Quill 에디터의 이미지 형식 확인 ({"insert":{"image":"url"}})
+    try {
+      if (content.contains('"image"')) {
+        return true;
+      }
+    } catch (e) {
+      // JSON 파싱 실패 시 무시
+    }
+    
+    return false;
   }
 
   // 아이템 클릭 처리
@@ -120,6 +382,15 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
   @override
   Widget build(BuildContext context) {
     final isDesktop = ResponsiveLayout.isDesktop(context);
+    
+    // 로딩 상태일 때 로딩 인디케이터 표시
+    if (_isLoading && _noticeItems.isEmpty) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
     
     // 좌측 광고 배너
     final leftSidebar = AdBannersColumn(

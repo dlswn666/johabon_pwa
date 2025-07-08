@@ -8,6 +8,10 @@ import 'package:html_editor_enhanced/html_editor.dart';
 import 'package:johabon_pwa/widgets/common/custom_grid_form.dart';
 import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:provider/provider.dart';
+import 'package:johabon_pwa/providers/auth_provider.dart';
+import 'package:johabon_pwa/providers/union_provider.dart';
+import 'package:uuid/uuid.dart';
 
 class NoticeWriteScreen extends StatefulWidget {
   const NoticeWriteScreen({super.key});
@@ -19,7 +23,6 @@ class NoticeWriteScreen extends StatefulWidget {
 class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
   final TextEditingController _titleController = TextEditingController();
   final HtmlEditorController _contentController = HtmlEditorController();
-  late DropzoneViewController _dropzoneController;
   
   // 상태 변수
   bool _isNotice = false;
@@ -32,9 +35,11 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
   List<DropdownOption> _subcategoryOptions = [];
   dynamic _selectedSubcategory;
   Map<String, dynamic> _formValues = {};
+  bool _isLoadingCategories = true;
 
   // --- 추가: QuillEditorField cleanup 핸들러 ---
   late Future<void> Function({String? content}) cleanupEditorImages;
+  final uuid = Uuid();
 
   @override
   void initState() {
@@ -43,14 +48,64 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
   }
 
   Future<void> _fetchSubcategories() async {
-    final response = await Supabase.instance.client
-        .from('post_subcategories')
-        .select('id, name')
-        .eq('category', 'notice');
+    try {
+      print('[NoticeWriteScreen] 카테고리 로딩 시작');
+      
+      // 먼저 'notice' 카테고리의 ID를 찾기
+      final categoryResponse = await Supabase.instance.client
+          .from('post_categories')
+          .select('id')
+          .eq('key', 'notice')
+          .single();
+      
+      if (categoryResponse != null && categoryResponse['id'] != null) {
+        final categoryId = categoryResponse['id'];
+        
+        // 해당 카테고리의 서브카테고리들 가져오기
+        final response = await Supabase.instance.client
+            .from('post_subcategories')
+            .select('id, name')
+            .eq('category_id', categoryId);
+        
+        print('[NoticeWriteScreen] 카테고리 응답: $response');
+        
+        if (response != null && response is List && response.isNotEmpty) {
+          setState(() {
+            _subcategoryOptions = response
+                .map((e) => DropdownOption(label: e['name'], value: e['id']))
+                .toList();
+            _isLoadingCategories = false;
+          });
+          print('[NoticeWriteScreen] 카테고리 옵션 설정 완료: ${_subcategoryOptions.length}개');
+        } else {
+          print('[NoticeWriteScreen] 서브카테고리 데이터가 없습니다.');
+          _setDefaultCategories();
+        }
+      } else {
+        print('[NoticeWriteScreen] notice 카테고리가 없습니다.');
+        _setDefaultCategories();
+      }
+    } catch (e) {
+      print('[NoticeWriteScreen] 카테고리 로딩 실패: $e');
+      _setDefaultCategories();
+      
+      // 사용자에게 알림
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('카테고리 로딩 실패: 기본 옵션으로 설정됩니다')),
+        );
+      }
+    }
+  }
+
+  void _setDefaultCategories() {
     setState(() {
-      _subcategoryOptions = (response as List)
-          .map((e) => DropdownOption(label: e['name'], value: e['id']))
-          .toList();
+      _subcategoryOptions = [
+        DropdownOption(label: '일반 공지', value: 'default'),
+        DropdownOption(label: '긴급 공지', value: 'urgent'),
+        DropdownOption(label: '안내사항', value: 'info'),
+      ];
+      _isLoadingCategories = false;
     });
   }
 
@@ -60,67 +115,17 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
     super.dispose();
   }
 
-  // 파일 선택 처리
-  Future<void> _pickFiles() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        allowMultiple: true,
-        type: FileType.any,
-      );
 
-      if (result != null && result.files.isNotEmpty) {
-        setState(() {
-          _pickedFiles.addAll(result.files);
-        });
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('파일 선택 오류: $e')),
-      );
-    }
-  }
-
-  // 파일 드롭존 초기화
-  void _onDropzoneCreated(DropzoneViewController controller) {
-    _dropzoneController = controller;
-  }
-
-  // 파일 드랍 처리
-  Future<void> _onFileDrop(dynamic event) async {
-    final name = await _dropzoneController.getFilename(event);
-    final mime = await _dropzoneController.getFileMIME(event);
-    final size = await _dropzoneController.getFileSize(event);
-    final url = await _dropzoneController.createFileUrl(event);
-    
-    setState(() {
-      _droppedFiles.add({
-        'name': name,
-        'mime': mime,
-        'size': size,
-        'url': url,
-        'event': event,
-      });
-    });
-  }
-
-  // 파일 삭제
-  void _removePickedFile(int index) {
-    setState(() {
-      _pickedFiles.removeAt(index);
-    });
-  }
-
-  void _removeDroppedFile(int index) {
-    setState(() {
-      _droppedFiles.removeAt(index);
-    });
-  }
 
   // 게시글 저장
   Future<void> _savePost() async {
-    final title = _titleController.text;
-    final content = await _contentController.getText();
+    // 폼 데이터 가져오기
+    final title = _formValues['title']?.toString() ?? '';
+    final subcategoryId = _formValues['subcategory'];
+    final isAlimTalk = _formValues['isAlimTalk'] ?? false;
+    final content = _formValues['content']?.toString() ?? '';
     
+    // 유효성 검사
     if (title.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('제목을 입력해주세요')),
@@ -135,39 +140,220 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
       return;
     }
 
-    // 글 저장 전: 에디터 이미지 cleanup (content 내에 없는 이미지는 삭제)
-    if (cleanupEditorImages != null) {
-      await cleanupEditorImages(content: content);
+    if (subcategoryId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('카테고리를 선택해주세요')),
+      );
+      return;
     }
 
-    // TODO: 서버에 데이터 저장 구현
-    print('제목: $title');
-    print('내용: $content');
-    print('공지: $_isNotice');
-    print('상단고정: $_isPinned');
-    print('나만보기: $_isPrivate');
-    print('첨부파일 수: ${_pickedFiles.length + _droppedFiles.length}');
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('게시글이 저장되었습니다')),
+    // 로딩 시작
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      },
     );
+
+    try {
+      // 현재 사용자 및 조합 정보 가져오기
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final unionProvider = Provider.of<UnionProvider>(context, listen: false);
+      
+      if (authProvider.currentUser == null) {
+        throw Exception('로그인 정보가 없습니다.');
+      }
+      
+      if (unionProvider.currentUnion == null) {
+        throw Exception('조합 정보가 없습니다.');
+      }
+
+      // 'notice' 카테고리 ID 찾기
+      final categoryResponse = await Supabase.instance.client
+          .from('post_categories')
+          .select('id')
+          .eq('key', 'notice')
+          .single();
+      
+      if (categoryResponse == null || categoryResponse['id'] == null) {
+        throw Exception('공지사항 카테고리를 찾을 수 없습니다.');
+      }
+      
+      final categoryId = categoryResponse['id'];
+
+      // 게시글 데이터 준비
+      final postData = {
+        'union_id': unionProvider.currentUnion!.id,
+        'title': title,
+        'content': content,
+        'category_id': categoryId,
+        'subcategory_id': subcategoryId,
+        'popup': false, // 팝업 표시 여부
+        'created_by': authProvider.currentUser!.name ?? 'Unknown', // 사용자 이름 (text 타입)
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      // 게시글 저장
+      final response = await Supabase.instance.client
+          .from('posts')
+          .insert(postData)
+          .select()
+          .single();
+
+      final postId = response['id'];
+      
+      // 첨부파일 처리
+      await _handleAttachments(postId);
+
+      // 글 저장 후: 에디터 이미지 cleanup (content 내에 없는 이미지는 삭제)
+      if (cleanupEditorImages != null) {
+        await cleanupEditorImages(content: content);
+      }
+
+      // 로딩 종료
+      Navigator.of(context).pop();
+
+      // 성공 메시지
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('게시글이 저장되었습니다')),
+      );
+      
+      // 게시글 목록으로 이동 (저장 성공 결과 전달)
+      Navigator.pop(context, true);
+      
+    } catch (e) {
+      // 로딩 종료
+      Navigator.of(context).pop();
+      
+      // 에러 메시지
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('게시글 저장 중 오류가 발생했습니다: ${e.toString()}')),
+      );
+      
+      print('게시글 저장 오류: $e');
+    }
+  }
+
+
+
+  // 첨부파일 처리
+  Future<void> _handleAttachments(String postId) async {
+    print('[첨부파일] 처리 시작 - postId: $postId');
+    print('[첨부파일] _pickedFiles 수: ${_pickedFiles.length}');
+    print('[첨부파일] _droppedFiles 수: ${_droppedFiles.length}');
     
-    Navigator.pop(context);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final unionProvider = Provider.of<UnionProvider>(context, listen: false);
+    
+    // FilePicker로 선택된 파일들 업로드
+    for (final file in _pickedFiles) {
+      try {
+        print('[첨부파일] 파일 처리 시작: ${file.name}');
+        
+        if (file.bytes != null) {
+          print('[첨부파일] 파일 바이트 존재: ${file.bytes!.length} bytes');
+          
+          final originalFileName = file.name;
+          final fileExtension = originalFileName.contains('.') 
+              ? originalFileName.substring(originalFileName.lastIndexOf('.'))
+              : '';
+          final attachmentId = uuid.v4(); // DB ID와 파일명에 동일한 UUID 사용
+          final uniqueFileName = '$attachmentId$fileExtension';
+          final storagePath = 'posts/$postId/$uniqueFileName';
+          
+          print('[첨부파일] 원본 파일명: $originalFileName');
+          print('[첨부파일] 고유 ID: $attachmentId');
+          print('[첨부파일] 고유 파일명: $uniqueFileName');
+          print('[첨부파일] 스토리지 경로: $storagePath');
+          
+          // Storage에 업로드
+          await Supabase.instance.client.storage
+              .from('post-upload')
+              .uploadBinary(storagePath, file.bytes!);
+          
+          print('[첨부파일] 스토리지 업로드 완료');
+          
+          // 공개 URL 생성
+          final publicUrl = Supabase.instance.client.storage
+              .from('post-upload')
+              .getPublicUrl(storagePath);
+          
+          print('[첨부파일] 공개 URL: $publicUrl');
+          
+          // attachments 테이블에 정보 저장 (파일명과 동일한 UUID 사용)
+          final attachmentData = {
+            'id': attachmentId, // 파일명과 동일한 UUID 사용
+            'union_id': unionProvider.currentUnion!.id,
+            'target_table': 'posts',
+            'target_id': postId,
+            'file_url': publicUrl,
+            'file_name': originalFileName,
+            'file_type': fileExtension.isNotEmpty ? fileExtension.substring(1) : null,
+            'file_size': file.bytes!.length,
+            'uploaded_by': authProvider.currentUser!.id,
+            'uploaded_at': DateTime.now().toIso8601String(),
+          };
+          
+          print('[첨부파일] 첨부파일 데이터: $attachmentData');
+          
+          await Supabase.instance.client.from('attachments').insert(attachmentData);
+          
+          print('[첨부파일] DB 삽입 완료: ${file.name}');
+        } else {
+          print('[첨부파일] 파일 바이트가 null: ${file.name}');
+        }
+      } catch (e) {
+        print('[첨부파일] 업로드 오류: ${file.name} - $e');
+        // 개별 파일 실패는 전체 저장을 중단하지 않음
+      }
+    }
+    
+    // 드래그&드롭된 파일들 업로드
+    for (final fileInfo in _droppedFiles) {
+      try {
+        print('[첨부파일] 드래그앤드롭 파일 처리 시작: ${fileInfo['name']}');
+        
+        final fileName = fileInfo['name'] as String;
+        final attachmentId = uuid.v4(); // DB ID와 파일명에 동일한 UUID 사용
+        final storagePath = 'posts/$postId/$attachmentId.${fileName.split('.').last}';
+        
+        print('[첨부파일] 드래그앤드롭 스토리지 경로: $storagePath');
+        
+        // 드래그앤드롭 파일은 현재 구조상 처리가 복잡하므로 일단 스킵
+        // TODO: 드래그앤드롭 파일 처리 구현 필요
+        print('[첨부파일] 드래그앤드롭 파일은 현재 지원되지 않습니다: ${fileName}');
+        
+      } catch (e) {
+        print('[첨부파일] 드래그앤드롭 파일 업로드 오류: ${fileInfo['name']} - $e');
+        // 개별 파일 실패는 전체 저장을 중단하지 않음
+      }
+    }
   }
 
   // 임시저장
   Future<void> _saveTemp() async {
-    final title = _titleController.text;
-    final content = await _contentController.getText();
+    // 폼 데이터 가져오기
+    final title = _formValues['title']?.toString() ?? '';
+    final content = _formValues['content']?.toString() ?? '';
     
     // 글 임시저장 전: 에디터 이미지 cleanup (content 내에 없는 이미지는 삭제)
     if (cleanupEditorImages != null) {
       await cleanupEditorImages(content: content);
     }
 
-    // TODO: 임시저장 기능 구현
+    // TODO: 임시저장 기능 구현 (나중에 drafts 테이블에 저장)
     print('임시저장 - 제목: $title');
     print('임시저장 - 내용: $content');
+    print('임시저장 - 카테고리: ${_formValues['subcategory']}');
+    print('임시저장 - 알림톡: ${_formValues['isAlimTalk']}');
     
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('임시저장되었습니다')),
@@ -188,6 +374,10 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
   @override
   Widget build(BuildContext context) {
     final isDesktop = ResponsiveLayout.isDesktop(context);
+    
+    // 디버깅: 카테고리 옵션 상태 확인
+    print('[NoticeWriteScreen] Build 시점 - 카테고리 옵션 수: ${_subcategoryOptions.length}');
+    print('[NoticeWriteScreen] Build 시점 - 카테고리 옵션: $_subcategoryOptions');
     
     // 좌측 광고 배너
     final leftSidebar = AdBannersColumn(
@@ -269,10 +459,27 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
           CustomGroupedForm(
             formValues: _formValues,
             onChanged: (key, value) {
+              print('[NoticeWriteScreen] 폼 값 변경: $key = $value');
               setState(() {
                 _formValues[key] = value;
                 if (key == 'subcategory') {
                   _selectedSubcategory = value;
+                  print('[NoticeWriteScreen] 카테고리 선택됨: $value');
+                } else if (key == 'attachFile' && value is List) {
+                  // 첨부파일 처리
+                  _pickedFiles.clear();
+                  _droppedFiles.clear();
+                  
+                  for (final file in value) {
+                    if (file is PlatformFile) {
+                      _pickedFiles.add(file);
+                    } else if (file is Map<String, dynamic>) {
+                      _droppedFiles.add(file);
+                    }
+                  }
+                  
+                  print('[첨부파일] _pickedFiles 업데이트: ${_pickedFiles.length}개');
+                  print('[첨부파일] _droppedFiles 업데이트: ${_droppedFiles.length}개');
                 }
               });
             },
@@ -295,6 +502,7 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
                     label: '카테고리',
                     type: FormFieldType.dropdown,
                     options: _subcategoryOptions,
+                    hintText: _isLoadingCategories ? '카테고리 로딩 중...' : '카테고리를 선택하세요',
                   ),
                   FormFieldConfig(
                     keyName: 'isAlimTalk',
@@ -443,59 +651,6 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
     );
   }
 
-  Widget _buildFileItem(String name, String size, VoidCallback onRemove) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 8,
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.insert_drive_file,
-            color: Color(0xFF41505D),
-            size: 20,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontFamily: 'Wanted Sans',
-                fontSize: 14,
-                color: Color(0xFF41505D),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Text(
-            size,
-            style: const TextStyle(
-              fontFamily: 'Wanted Sans',
-              fontSize: 12,
-              color: Color(0xFF8C8C8C),
-            ),
-          ),
-          const SizedBox(width: 16),
-          IconButton(
-            onPressed: onRemove,
-            icon: const Icon(
-              Icons.close,
-              size: 16,
-              color: Color(0xFF8C8C8C),
-            ),
-            constraints: const BoxConstraints(
-              minWidth: 24,
-              minHeight: 24,
-            ),
-            padding: EdgeInsets.zero,
-            splashRadius: 16,
-          ),
-        ],
-      ),
-    );
-  }
+
   
 } 

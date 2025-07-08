@@ -205,6 +205,14 @@ class CustomGridForm extends StatelessWidget {
             case FormFieldType.dropdown:
                 return DropdownButtonFormField<dynamic>(
                     value: formValues[field.keyName],
+                    hint: field.hintText != null ? Text(
+                        field.hintText!,
+                        style: const TextStyle(
+                            fontSize: 16,
+                            fontFamily: 'Wanted Sans',
+                            color: Colors.grey,
+                        ),
+                    ) : null,
                     items: field.options?.map((option) => DropdownMenuItem<dynamic>(
                         value: option.value,
                         child: Text(option.label),

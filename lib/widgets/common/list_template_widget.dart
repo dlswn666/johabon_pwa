@@ -12,6 +12,10 @@ abstract class ListItemInterface {
   bool get isLocked;
   bool get hasImage;
   bool get hasLink;
+  
+  // 카테고리 정보 (옵셔널)
+  String? get categoryName => null;
+  String? get subcategoryName => null;
 }
 
 class ListTemplateWidget extends StatefulWidget {
@@ -482,6 +486,25 @@ class _ListTemplateWidgetState extends State<ListTemplateWidget> {
                           Icons.lock,
                           size: 16,
                           color: Color(0xFF41505D),
+                        ),
+                      ),
+                    // 카테고리 배지
+                    if (item.subcategoryName != null)
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Color(0xFF75D49B),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          item.subcategoryName!,
+                          style: TextStyle(
+                            fontFamily: 'Wanted Sans',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     Expanded(

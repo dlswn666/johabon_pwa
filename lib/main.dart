@@ -30,9 +30,21 @@ void main() async{
   final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? 'https://xschknzenjbtxddkxrnq.supabase.co';
   final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhzY2hrbnplbmpidHhkZGt4cm5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczNzgzNDgsImV4cCI6MjA2Mjk1NDM0OH0.EASwXT9GTV6kpqAZIkY0WUxGnTJ3BBHF3m0GWmdSwqQ';
   
+  // 임시 해결책: Service Role Key 사용 (개발용)
+  // 주의: 프로덕션에서는 방법 1 (RLS 정책 생성)을 사용해야 합니다
+  final supabaseServiceKey = dotenv.env['SUPABASE_SERVICE_KEY'] ?? supabaseAnonKey;
+  
+  // --- DEBUGGING CODE ---
+  if (dotenv.env['SUPABASE_SERVICE_KEY'] == null) {
+    print("🔴 [DEBUG] SUPABASE_SERVICE_KEY 로드 실패! Anon Key를 사용합니다.");
+  } else {
+    print("🟢 [DEBUG] SUPABASE_SERVICE_KEY 로드 성공!");
+  }
+  // --- END DEBUGGING CODE ---
+  
   await Supabase.initialize(
     url: supabaseUrl,
-    anonKey: supabaseAnonKey,
+    anonKey: supabaseServiceKey, // Service Role Key 사용
   );
   print("[Main] Supabase 초기화 완료");
   

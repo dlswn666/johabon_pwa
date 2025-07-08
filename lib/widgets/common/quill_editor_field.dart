@@ -251,24 +251,33 @@ class _QuillEditorFieldState extends State<QuillEditorField> {
     }
   }
 
+
+
   // 이미지 업로드 핸들러
   Future<String?> _onImageUploadToSupabase(Uint8List fileBytes, String fileName, {String? mimeType, String? userId, String? unionId}) async {
     try {
-      final storagePath = 'post-upload/temp/${uuid.v4()}_$fileName';
+      final fileExtension = fileName.contains('.') 
+          ? fileName.substring(fileName.lastIndexOf('.'))
+          : '';
+      final attachmentId = uuid.v4(); // DB ID와 파일명에 동일한 UUID 사용
+      final uniqueFileName = '$attachmentId$fileExtension';
+      final storagePath = 'post-upload/temp/$uniqueFileName';
       await supabase.storage
           .from('post-upload')
           .uploadBinary(storagePath, fileBytes);
       final publicUrl =
           supabase.storage.from('post-upload').getPublicUrl(storagePath);
       _uploadedImageUrls.add(publicUrl);
-      // attachments 테이블에 임시 레코드 생성 (target_id는 null)
+      // attachments 테이블에 임시 레코드 생성 (target_id는 null, 파일명과 동일한 UUID 사용)
       await supabase.from('attachments').insert({
+        'id': attachmentId, // 파일명과 동일한 UUID 사용
         'union_id': unionId ?? '',
         'target_table': 'posts',
         'target_id': null,
         'file_url': publicUrl,
-        'file_name': fileName,
-        'file_type': mimeType,
+        'file_name': fileName,  // 원본 파일명 저장
+        'file_type': fileExtension.isNotEmpty ? fileExtension.substring(1) : mimeType,
+        'file_size': fileBytes.length,
         'uploaded_by': userId ?? '',
       });
       return publicUrl;
