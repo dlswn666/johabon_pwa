@@ -44,7 +44,7 @@ void main() async{
   
   await Supabase.initialize(
     url: supabaseUrl,
-    anonKey: supabaseServiceKey, // Service Role Key 사용
+    anonKey: supabaseAnonKey, // 올바른 Anon Key 사용으로 수정
   );
   print("[Main] Supabase 초기화 완료");
   

@@ -6,6 +6,7 @@ import 'package:johabon_pwa/utils/responsive_layout.dart';
 import 'package:johabon_pwa/widgets/common/list_template_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:johabon_pwa/screens/community/notice_write_screen.dart';
+import 'package:johabon_pwa/screens/community/notice_detail_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 // ignore: uri_does_not_exist
 import 'dart:js' if (dart.library.io) 'package:johabon_pwa/utils/stub_js.dart' as js;
@@ -374,9 +375,20 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
   }
 
   // 아이템 클릭 처리
-  void _handleItemTap(ListItemInterface item) {
-    print('선택된 아이템: ${item.title}');
-    // 실제로는 여기서 상세 페이지로 이동하게 됩니다.
+  void _handleItemTap(ListItemInterface item) async {
+    if (item is NoticeItem) {
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => NoticeDetailScreen(noticeId: item.id),
+        ),
+      );
+      
+      // 상세 화면에서 삭제되었거나 수정되었을 때 리스트 새로고침
+      if (result == true) {
+        await _loadPageData(_currentPage);
+      }
+    }
   }
 
   @override

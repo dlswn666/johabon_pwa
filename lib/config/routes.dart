@@ -21,6 +21,7 @@ import 'package:johabon_pwa/screens/community/gallery_screen.dart';
 import 'package:johabon_pwa/screens/community/info_sharing_screen.dart';
 import 'package:johabon_pwa/screens/community/notice_list_screen.dart';
 import 'package:johabon_pwa/screens/community/notice_write_screen.dart';
+import 'package:johabon_pwa/screens/community/notice_edit_screen.dart';
 import 'package:johabon_pwa/screens/community/qna_screen.dart';
 import 'package:johabon_pwa/screens/community/share_screen.dart';
 import 'package:johabon_pwa/screens/development/development_info_screen.dart';
@@ -45,6 +46,7 @@ class AppRoutes {
   static const String developmentInfo = 'development/info';
   static const String notice = 'community/notice';
   static const String noticeWrite = 'community/notice/write';
+  static const String noticeEdit = 'community/notice/edit';
   static const String qna = 'community/qna';
   static const String share = 'community/share';
   static const String infoSharing = 'community/info-sharing';
@@ -87,6 +89,7 @@ class AppRoutes {
       'developmentInfo': getFullRoute(slug, developmentInfo),
       'notice': getFullRoute(slug, notice),
       'noticeWrite': getFullRoute(slug, noticeWrite),
+      'noticeEdit': getFullRoute(slug, noticeEdit),
       'qna': getFullRoute(slug, qna),
       'share': getFullRoute(slug, share),
       'infoSharing': getFullRoute(slug, infoSharing),
@@ -179,6 +182,15 @@ class AppRoutes {
             pageContent = const NoticeListScreen(); break;
           case AppRoutes.noticeWrite:
             pageContent = const NoticeWriteScreen(); break;
+          case AppRoutes.noticeEdit:
+            // noticeId는 URL 파라미터나 arguments에서 가져와야 함
+            final noticeId = settings.arguments as String?;
+            if (noticeId != null) {
+              pageContent = NoticeEditScreen(noticeId: noticeId);
+            } else {
+              pageContent = const NotFoundScreen();
+            }
+            break;
           case AppRoutes.qna:
             pageContent = const QnaScreen(); break;
           case AppRoutes.share:
@@ -365,10 +377,19 @@ class AppRoutes {
         pageContent = const DevelopmentInfoScreen(); break;
       case AppRoutes.notice:
         pageContent = const NoticeListScreen(); break;
-      case AppRoutes.noticeWrite:
-        pageContent = const NoticeWriteScreen(); break;
-      case AppRoutes.qna:
-        pageContent = const QnaScreen(); break;
+                case AppRoutes.noticeWrite:
+            pageContent = const NoticeWriteScreen(); break;
+          case AppRoutes.noticeEdit:
+            // noticeId는 URL 파라미터나 arguments에서 가져와야 함
+            final noticeId = settings.arguments as String?;
+            if (noticeId != null) {
+              pageContent = NoticeEditScreen(noticeId: noticeId);
+            } else {
+              pageContent = const NotFoundScreen();
+            }
+            break;
+          case AppRoutes.qna:
+            pageContent = const QnaScreen(); break;
       case AppRoutes.share:
         pageContent = const ShareScreen(); break;
       case AppRoutes.infoSharing:
