@@ -8,6 +8,8 @@ import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:universal_html/html.dart' as html;
+import 'package:johabon_pwa/widgets/common/ad_banner_widget.dart';
+import 'package:johabon_pwa/utils/responsive_layout.dart';
 
 class NoticeDetailScreen extends StatefulWidget {
   final String noticeId;
@@ -122,14 +124,51 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = ResponsiveLayout.isDesktop(context);
+
+    // 좌측 광고 배너
+    final leftSidebar = Column(
+      children: [
+        AdBannerWidget(
+          title: '빈자리에요\n어서오세요',
+          description: '광고배너\n문의환영',
+          imageUrl: 'assets/images/banner_hundea.png',
+          backgroundColor: Colors.white,
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('광고 문의: 02-123-1234')),
+            );
+          },
+        ),
+      ],
+    );
+
+    // 우측 광고 배너
+    final rightSidebar = Column(
+      children: [
+        AdBannerWidget(
+          title: '홈페이지 내\n광고문의',
+          description: '02-123-1234',
+          imageUrl: 'assets/images/banner_default.png',
+          backgroundColor: Colors.white,
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('광고 문의: 02-123-1234')),
+            );
+          },
+        ),
+      ],
+    );
+
     return WillPopScope(
       onWillPop: () async {
-        // 뒤로가기 시 수정되었는지 여부를 전달
         Navigator.of(context).pop(_isModified);
-        return false; // 기본 뒤로가기 동작 방지
+        return false;
       },
       child: ContentLayoutTemplate(
         title: '공지사항',
+        leftSidebarContent: isDesktop ? leftSidebar : null,
+        rightSidebarContent: isDesktop ? rightSidebar : null,
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _buildContent(),
@@ -367,17 +406,19 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
   void _navigateToEdit() {
     final unionProvider = Provider.of<UnionProvider>(context, listen: false);
     final slug = unionProvider.currentUnion?.homepage;
-    
-    if (slug != null) {
-      final editRoute = AppRoutes.getFullRoute(slug, AppRoutes.noticeEdit);
+
+    if (slug != null && _noticeData != null) {
+      final editRoute = AppRoutes.getFullRoute(slug, AppRoutes.noticeWrite);
       Navigator.of(context).pushNamed(
         editRoute,
-        arguments: widget.noticeId,
+        arguments: {
+          'isEdit': true,
+          'initialData': _noticeData,
+          'attachments': _attachments,
+        },
       ).then((result) {
         // 수정 후 돌아왔을 때 데이터 새로고침
         _fetchNoticeDetails();
-        
-        // 수정이 완료되었다면 수정 상태를 true로 설정
         if (result == true) {
           _isModified = true;
         }

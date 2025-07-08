@@ -41,10 +41,38 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
   late Future<void> Function({String? content}) cleanupEditorImages;
   final uuid = Uuid();
 
+  bool _isEdit = false;
+  Map<String, dynamic>? _initialData;
+  List<Map<String, dynamic>> _initialAttachments = [];
+  bool _didInitFromArgs = false;
+
   @override
   void initState() {
     super.initState();
     _fetchSubcategories();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didInitFromArgs) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Map) {
+        _isEdit = args['isEdit'] == true;
+        _initialData = args['initialData'] as Map<String, dynamic>?;
+        _initialAttachments = (args['attachments'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+        if (_isEdit && _initialData != null) {
+          // 제목, 내용, 카테고리 등 폼 값 세팅
+          _formValues['title'] = _initialData!['title'] ?? '';
+          _formValues['content'] = _initialData!['content'] ?? '';
+          _formValues['subcategory'] = _initialData!['subcategory_id'] ?? '';
+          _titleController.text = _initialData!['title'] ?? '';
+          _contentController.setText(_initialData!['content'] ?? '');
+          // 첨부파일은 별도 처리 필요 (UI에 맞게 추가)
+        }
+      }
+      _didInitFromArgs = true;
+    }
   }
 
   Future<void> _fetchSubcategories() async {
@@ -374,10 +402,12 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
   @override
   Widget build(BuildContext context) {
     final isDesktop = ResponsiveLayout.isDesktop(context);
+    final pageTitle = _isEdit ? '글 수정하기' : '글 작성하기';
+    final actionButtonText = _isEdit ? '수정하기' : '등록하기';
     
     // 디버깅: 카테고리 옵션 상태 확인
     print('[NoticeWriteScreen] Build 시점 - 카테고리 옵션 수: ${_subcategoryOptions.length}');
-    print('[NoticeWriteScreen] Build 시점 - 카테고리 옵션: $_subcategoryOptions');
+    print('[NoticeWriteScreen] Build 시점 - 카테고리 옵션: ${_subcategoryOptions}');
     
     // 좌측 광고 배너
     final leftSidebar = AdBannersColumn(
@@ -414,22 +444,20 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
     );
 
     return ContentLayoutTemplate(
-      title: '글 작성하기',
+      title: pageTitle,
       leftSidebarContent: leftSidebar,
       rightSidebarContent: rightSidebar,
-      body: _buildWriteForm(context),
+      body: _buildWriteForm(context, actionButtonText),
     );
   }
 
-  Widget _buildWriteForm(BuildContext context) {
+  Widget _buildWriteForm(BuildContext context, String actionButtonText) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          
           const SizedBox(height: 12),
-
           // 게시판 표시
           const Text(
             '공지사항',
@@ -441,21 +469,17 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          
-          // 글 작성 제목
-          const Text(
-            '글 작성하기',
-            style: TextStyle(
+          // 글 작성/수정 제목
+          Text(
+            _isEdit ? '글 수정하기' : '글 작성하기',
+            style: const TextStyle(
               fontFamily: 'Wanted Sans',
               fontSize: 32,
               fontWeight: FontWeight.w600,
               color: Color(0xFF41505D),
             ),
           ),
-          
-          
           const SizedBox(height: 24),
-
           CustomGroupedForm(
             formValues: _formValues,
             onChanged: (key, value) {
@@ -469,7 +493,6 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
                   // 첨부파일 처리
                   _pickedFiles.clear();
                   _droppedFiles.clear();
-                  
                   for (final file in value) {
                     if (file is PlatformFile) {
                       _pickedFiles.add(file);
@@ -477,7 +500,6 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
                       _droppedFiles.add(file);
                     }
                   }
-                  
                   print('[첨부파일] _pickedFiles 업데이트: ${_pickedFiles.length}개');
                   print('[첨부파일] _droppedFiles 업데이트: ${_droppedFiles.length}개');
                 }
@@ -532,72 +554,70 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
               ),
             ],
           ),
-          
-          
-          
           const SizedBox(height: 32),
-          
           // 버튼 영역
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              // 임시저장 버튼
-              OutlinedButton(
-                onPressed: _saveTemp,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF41505D),
-                  side: const BorderSide(
-                    color: Color(0xFFA8B4BE),
-                    width: 1,
+              // 임시저장 버튼 (글쓰기 모드에서만)
+              if (!_isEdit)
+                OutlinedButton(
+                  onPressed: _saveTemp,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF41505D),
+                    side: const BorderSide(
+                      color: Color(0xFFA8B4BE),
+                      width: 1,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                child: const Text(
-                  '임시저장',
-                  style: TextStyle(
-                    fontFamily: 'Wanted Sans',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // 불러오기 버튼
-              OutlinedButton(
-                onPressed: _loadTemp,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF41505D).withOpacity(0.4),
-                  side: BorderSide(
-                    color: const Color(0xFFA8B4BE).withOpacity(0.4),
-                    width: 1,
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
+                  child: const Text(
+                    '임시저장',
+                    style: TextStyle(
+                      fontFamily: 'Wanted Sans',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-                child: const Text(
-                  '불러오기',
-                  style: TextStyle(
-                    fontFamily: 'Wanted Sans',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+              if (!_isEdit) const SizedBox(width: 12),
+              // 불러오기 버튼 (글쓰기 모드에서만)
+              if (!_isEdit)
+                OutlinedButton(
+                  onPressed: _loadTemp,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF41505D).withOpacity(0.4),
+                    side: BorderSide(
+                      color: const Color(0xFFA8B4BE).withOpacity(0.4),
+                      width: 1,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  child: const Text(
+                    '불러오기',
+                    style: TextStyle(
+                      fontFamily: 'Wanted Sans',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              // 등록하기 버튼
+              if (!_isEdit) const SizedBox(width: 12),
+              // 등록/수정 버튼
               ElevatedButton(
-                onPressed: _savePost,
+                onPressed: _isEdit ? _updatePost : _savePost,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF75D49B),
                   foregroundColor: const Color(0xFF22675F),
@@ -609,9 +629,9 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
-                child: const Text(
-                  '등록하기',
-                  style: TextStyle(
+                child: Text(
+                  actionButtonText,
+                  style: const TextStyle(
                     fontFamily: 'Wanted Sans',
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -620,10 +640,17 @@ class _NoticeWriteScreenState extends State<NoticeWriteScreen> {
               ),
             ],
           ),
-          
           const SizedBox(height: 40),
         ],
       ),
+    );
+  }
+
+  // 수정 모드일 때 호출될 게시글 업데이트 함수 (임시)
+  Future<void> _updatePost() async {
+    // TODO: 실제 수정 로직 구현 필요
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('수정 기능은 아직 구현되지 않았습니다.')),
     );
   }
 
