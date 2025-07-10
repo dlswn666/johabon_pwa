@@ -19,6 +19,7 @@ class CustomTextField extends StatefulWidget {
   final Function(String)? onSubmitted;
   final String? Function(String?)? validator;
   final bool enabled;
+  final bool readOnly;
 
   const CustomTextField({
     super.key,
@@ -39,6 +40,7 @@ class CustomTextField extends StatefulWidget {
     this.onSubmitted,
     this.validator,
     this.enabled = true,
+    this.readOnly = false,
   });
 
   @override
@@ -77,6 +79,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
           maxLength: widget.maxLength,
           textInputAction: widget.textInputAction,
           enabled: widget.enabled,
+          readOnly: widget.readOnly,
           style: const TextStyle(
             fontSize: 15,
             color: AppTheme.textPrimaryColor,
